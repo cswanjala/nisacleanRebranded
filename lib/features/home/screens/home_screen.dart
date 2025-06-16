@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nisacleanv1/features/home/widgets/service_card.dart';
 import 'package:nisacleanv1/features/home/widgets/promo_banner.dart';
+import 'package:nisacleanv1/features/bookings/widgets/bookings_list.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -84,12 +85,69 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 24),
+                  _buildRecentBookings(),
                 ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRecentBookings() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Recent Bookings',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () {
+                // TODO: Implement view all bookings
+              },
+              child: const Text('View All'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        BookingsList(
+          bookings: [
+            {
+              'id': 'BK001',
+              'service': 'House Cleaning',
+              'date': '2024-03-20',
+              'time': '10:00 AM',
+              'amount': 2500.00,
+              'status': 'pending',
+            },
+            {
+              'id': 'BK002',
+              'service': 'Office Cleaning',
+              'date': '2024-03-21',
+              'time': '2:00 PM',
+              'amount': 5000.00,
+              'status': 'confirmed',
+            },
+            {
+              'id': 'BK003',
+              'service': 'Carpet Cleaning',
+              'date': '2024-03-19',
+              'time': '11:30 AM',
+              'amount': 3500.00,
+              'status': 'completed',
+            },
+          ],
+        ),
+      ],
     );
   }
 } 
