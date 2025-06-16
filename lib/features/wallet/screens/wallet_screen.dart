@@ -36,7 +36,7 @@ class _WalletScreenState extends State<WalletScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// Title and notification icon
+              /// Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -57,7 +57,7 @@ class _WalletScreenState extends State<WalletScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
               /// Balance Card
               const BalanceCard(
@@ -65,9 +65,9 @@ class _WalletScreenState extends State<WalletScreen>
                 phoneNumber: '0796247784',
                 paymentMethod: 'Mpesa',
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              /// Actions
+              /// Action Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -75,13 +75,15 @@ class _WalletScreenState extends State<WalletScreen>
                     icon: Icons.add,
                     title: 'Add',
                     onPressed: () {},
-                    size: 36,
+                    size: 28,
+                    fontSize: 12,
                   ),
                   ActionButtonCard(
                     icon: Icons.upload,
                     title: 'Release',
                     onPressed: () {},
-                    size: 36,
+                    size: 28,
+                    fontSize: 12,
                   ),
                 ],
               ),
@@ -93,16 +95,23 @@ class _WalletScreenState extends State<WalletScreen>
                 indicatorColor: Colors.white,
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.grey,
+                labelStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
                 tabs: const [
                   Tab(text: 'Transactions'),
                   Tab(text: 'Pending'),
                   Tab(text: 'Statements'),
                 ],
               ),
+              const SizedBox(height: 16),
 
-              /// Tab Content (make sure it has fixed height or wrap with SizedBox)
+              /// TabBarView with shrink-wrapped height
               SizedBox(
-                height: 500, // or MediaQuery.of(context).size.height * 0.6
+                height:
+                    MediaQuery.of(context).size.height *
+                    0.6, // Adjust as needed
                 child: TabBarView(
                   controller: _tabController,
                   children: [
@@ -121,8 +130,8 @@ class _WalletScreenState extends State<WalletScreen>
 
   Widget _buildTransactionsTab() {
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: 5,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      itemCount: 10,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         return TransactionCard(
@@ -136,19 +145,23 @@ class _WalletScreenState extends State<WalletScreen>
   }
 
   Widget _buildPendingTab() {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(20),
-        child: Text(
-          'You have no pending fund releases at the moment.',
-          style: TextStyle(fontSize: 14, color: Colors.white70),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: SizedBox(
+        height: 200,
+        child: Center(
+          child: Text(
+            'You have no pending fund releases at the moment.',
+            style: TextStyle(fontSize: 14, color: Colors.white70),
+            textAlign: TextAlign.center,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildStatementsTab() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16),
       child: Column(
         children: [

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class BalanceCard extends StatelessWidget {
   final double balance;
   final String phoneNumber;
-  final String paymentMethod;
+  final String paymentMethod; // Unused, but kept in constructor
 
   const BalanceCard({
     super.key,
@@ -19,94 +19,56 @@ class BalanceCard extends StatelessWidget {
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            /// Title
             const Text(
               'Available Balance',
-              style: TextStyle(fontSize: 14, color: Colors.white70),
+              style: TextStyle(fontSize: 13, color: Colors.white70),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
+
+            /// Balance
             Text(
               'KES ${balance.toStringAsFixed(2)}',
               style: const TextStyle(
-                fontSize: 26,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            /// Phone Number Row
+            /// Phone number
             Row(
               children: [
-                const Icon(Icons.phone, size: 20, color: Colors.white70),
-                const SizedBox(width: 8),
+                const Icon(Icons.phone, size: 18, color: Colors.white70),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Phone: $phoneNumber',
-                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                    phoneNumber,
+                    style: const TextStyle(fontSize: 13, color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 4),
                 TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   onPressed: () {
                     // TODO: Navigate to edit phone number screen
                   },
                   child: const Text(
-                    "Change",
-                    style: TextStyle(color: Colors.tealAccent),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            /// Payment Method Row
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.account_balance_wallet_outlined,
-                  size: 20,
-                  color: Colors.white70,
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Payment Method:',
-                  style: TextStyle(fontSize: 14, color: Colors.white),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButton<String>(
-                    isExpanded: true, // Important to allow wrapping
-                    dropdownColor: const Color(0xFF2A2A2A),
-                    value: paymentMethod,
-                    iconEnabledColor: Colors.white70,
-                    underline: Container(height: 0),
-                    style: const TextStyle(color: Colors.white),
-                    items: const [
-                      DropdownMenuItem(value: 'Mpesa', child: Text('Mpesa')),
-                      DropdownMenuItem(
-                        value: 'PayPal',
-                        enabled: false,
-                        child: Text(
-                          'PayPal (Coming Soon)',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'GooglePay',
-                        enabled: false,
-                        child: Text(
-                          'Google Pay (Coming Soon)',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      // No action for now
-                    },
+                    "Edit",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color.fromARGB(255, 83, 185, 241),
+                    ),
                   ),
                 ),
               ],

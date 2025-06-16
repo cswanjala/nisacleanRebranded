@@ -5,13 +5,15 @@ class ActionButtonCard extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
   final double size;
+  final double fontSize;
 
   const ActionButtonCard({
     super.key,
     required this.title,
     required this.icon,
     required this.onPressed,
-    this.size = 36,
+    this.size = 28,
+    this.fontSize = 12,
   });
 
   @override
@@ -20,16 +22,16 @@ class ActionButtonCard extends StatelessWidget {
       child: GestureDetector(
         onTap: onPressed,
         child: Container(
-          height: 90,
-          margin: const EdgeInsets.symmetric(horizontal: 8),
+          height: 70,
+          margin: const EdgeInsets.symmetric(horizontal: 6),
           decoration: BoxDecoration(
             color: const Color(0xFF1E1E1E),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.4),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -37,12 +39,12 @@ class ActionButtonCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: size, color: Colors.white),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 14,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w500,
                 ),
               ),
