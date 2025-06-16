@@ -8,39 +8,113 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'NisaClean',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            floating: true,
+            pinned: true,
+            expandedHeight: 120,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Welcome back',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'NisaClean',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () {
+                  // TODO: Implement notifications
+                },
+              ),
+            ],
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // TODO: Implement notifications
-            },
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSearchBar(),
+                  const SizedBox(height: 24),
+                  _buildServicesSection(),
+                  const SizedBox(height: 24),
+                  _buildPromoBanner(),
+                  const SizedBox(height: 24),
+                  _buildRecentBookings(),
+                ],
+              ),
+            ),
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildServicesSection(),
-                const SizedBox(height: 24),
-                _buildPromoBanner(),
-                const SizedBox(height: 24),
-                _buildRecentBookings(),
-              ],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: 0,
+        onDestinationSelected: (index) {
+          // TODO: Handle navigation
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_today_outlined),
+            selectedIcon: Icon(Icons.calendar_today),
+            label: 'Bookings',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.search, color: Colors.grey),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              decoration: const InputDecoration(
+                hintText: 'Search services...',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              onChanged: (value) {
+                // TODO: Implement search
+              },
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -118,7 +192,6 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       child: Stack(
-        clipBehavior: Clip.none,
         children: [
           Positioned(
             right: -20,
@@ -130,15 +203,14 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 4,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
@@ -149,41 +221,36 @@ class HomeScreen extends StatelessWidget {
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w500,
-                      fontSize: 12,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 const Text(
                   'Get 20% off on your first cleaning service',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 const Text(
                   'Use code: WELCOME20',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 14,
                   ),
                 ),
                 const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // TODO: Implement offer redemption
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF1E88E5),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                    child: const Text('Book Now'),
+                ElevatedButton(
+                  onPressed: () {
+                    // TODO: Implement offer redemption
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF1E88E5),
                   ),
+                  child: const Text('Book Now'),
                 ),
               ],
             ),

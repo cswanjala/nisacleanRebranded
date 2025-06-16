@@ -231,6 +231,7 @@ class BookingDetailsSheet extends StatelessWidget {
           child: ElevatedButton(
             onPressed: () async {
               if (booking['status'] == 'pending') {
+                Navigator.pop(context); // Close the bottom sheet
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -246,14 +247,14 @@ class BookingDetailsSheet extends StatelessWidget {
                   // Payment successful, update booking status
                   // TODO: Update booking status in backend
                   if (context.mounted) {
-                    Navigator.pop(context, true);
+                    // Show success message or refresh the list
                   }
                 }
               } else if (booking['status'] == 'confirmed') {
                 // Mark as completed
                 // TODO: Update booking status in backend
                 if (context.mounted) {
-                  Navigator.pop(context, true);
+                  Navigator.pop(context);
                 }
               }
             },

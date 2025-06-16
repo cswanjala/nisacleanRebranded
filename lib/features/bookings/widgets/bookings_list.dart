@@ -18,21 +18,7 @@ class BookingsList extends StatelessWidget {
       itemBuilder: (context, index) {
         final booking = bookings[index];
         return ListTile(
-          onTap: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (context) => DraggableScrollableSheet(
-                initialChildSize: 0.9,
-                minChildSize: 0.5,
-                maxChildSize: 0.95,
-                builder: (context, scrollController) => BookingDetailsSheet(
-                  booking: booking,
-                ),
-              ),
-            );
-          },
+          onTap: () => _showBookingDetails(context, booking),
           leading: Container(
             width: 48,
             height: 48,
@@ -90,6 +76,22 @@ class BookingsList extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  void _showBookingDetails(BuildContext context, Map<String, dynamic> booking) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => BookingDetailsSheet(
+          booking: booking,
+        ),
+      ),
     );
   }
 
