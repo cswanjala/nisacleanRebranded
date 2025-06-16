@@ -64,6 +64,7 @@ class BalanceCard extends StatelessWidget {
 
             /// Payment Method Row
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Icon(
                   Icons.account_balance_wallet_outlined,
@@ -76,34 +77,37 @@ class BalanceCard extends StatelessWidget {
                   style: TextStyle(fontSize: 14, color: Colors.white),
                 ),
                 const SizedBox(width: 8),
-                DropdownButton<String>(
-                  dropdownColor: const Color(0xFF2A2A2A),
-                  value: paymentMethod,
-                  iconEnabledColor: Colors.white70,
-                  underline: Container(height: 0),
-                  style: const TextStyle(color: Colors.white),
-                  items: const [
-                    DropdownMenuItem(value: 'Mpesa', child: Text('Mpesa')),
-                    DropdownMenuItem(
-                      value: 'PayPal',
-                      enabled: false,
-                      child: Text(
-                        'PayPal (Coming Soon)',
-                        style: TextStyle(color: Colors.grey),
+                Expanded(
+                  child: DropdownButton<String>(
+                    isExpanded: true, // Important to allow wrapping
+                    dropdownColor: const Color(0xFF2A2A2A),
+                    value: paymentMethod,
+                    iconEnabledColor: Colors.white70,
+                    underline: Container(height: 0),
+                    style: const TextStyle(color: Colors.white),
+                    items: const [
+                      DropdownMenuItem(value: 'Mpesa', child: Text('Mpesa')),
+                      DropdownMenuItem(
+                        value: 'PayPal',
+                        enabled: false,
+                        child: Text(
+                          'PayPal (Coming Soon)',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'GooglePay',
-                      enabled: false,
-                      child: Text(
-                        'Google Pay (Coming Soon)',
-                        style: TextStyle(color: Colors.grey),
+                      DropdownMenuItem(
+                        value: 'GooglePay',
+                        enabled: false,
+                        child: Text(
+                          'Google Pay (Coming Soon)',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    // No action for now
-                  },
+                    ],
+                    onChanged: (value) {
+                      // No action for now
+                    },
+                  ),
                 ),
               ],
             ),
