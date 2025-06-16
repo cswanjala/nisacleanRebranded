@@ -34,8 +34,16 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (mounted) {
-          // For now, navigate to home screen since we don't have role in response
-          Navigator.pushReplacementNamed(context, '/home');
+          print('Login Response: $response'); // Debug print
+          final role = response['role'];
+
+          if (role == 'worker') {
+            Navigator.pushReplacementNamed(context, '/worker-home');
+          } else if (role == 'client') {
+            Navigator.pushReplacementNamed(context, '/home');
+          } else {
+            throw 'Invalid user role';
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -91,6 +99,16 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     }
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your password';
+    }
+    if (value.length < 2) {
+      return 'Password must be at least 2 characters';
+    }
+    return null;
   }
 
   @override
@@ -233,15 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       filled: true,
                       fillColor: const Color(0xFF2A2A2A),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
-                      }
-                      if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
-                      }
-                      return null;
-                    },
+                    validator: _validatePassword,
                   ),
                   const SizedBox(height: 16),
                   // Forgot Password

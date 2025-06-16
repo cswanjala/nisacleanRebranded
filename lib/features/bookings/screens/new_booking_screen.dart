@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:nisacleanv1/features/bookings/widgets/location_picker.dart';
 import 'package:nisacleanv1/features/bookings/repositories/booking_repository.dart';
+import 'package:nisacleanv1/features/bookings/screens/service_provider_selection_screen.dart';
 
 class NewBookingScreen extends StatefulWidget {
   const NewBookingScreen({super.key});
@@ -77,6 +78,27 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  void _handleSubmit() {
+    if (_formKey.currentState!.validate()) {
+      final bookingDetails = {
+        'service': _selectedService,
+        'date': _selectedDate,
+        'time': _selectedTime,
+        'address': _selectedLocation,
+        'notes': _notes,
+      };
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ServiceProviderSelectionScreen(
+            bookingDetails: bookingDetails,
+          ),
+        ),
+      );
     }
   }
 
@@ -185,7 +207,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
             ),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: _isLoading ? null : _createBooking,
+              onPressed: _isLoading ? null : _handleSubmit,
               child: _isLoading
                   ? const CircularProgressIndicator()
                   : const Text('Create Booking'),

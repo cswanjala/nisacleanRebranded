@@ -8,6 +8,7 @@ import 'package:nisacleanv1/features/bookings/screens/bookings_screen.dart';
 import 'package:nisacleanv1/features/wallet/screens/wallet_screen.dart';
 import 'package:nisacleanv1/features/profile/screens/profile_screen.dart';
 import 'package:nisacleanv1/features/auth/screens/login_screen.dart';
+import 'package:nisacleanv1/features/worker/screens/worker_main_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,6 +32,7 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (context) => const LoginScreen(),
           '/home': (context) => const MainScreen(),
+          '/worker-home': (context) => const WorkerMainScreen(),
         },
       ),
     );
