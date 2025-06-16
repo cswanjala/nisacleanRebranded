@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nisacleanv1/features/bookings/widgets/bookings_list.dart';
 import 'package:nisacleanv1/features/home/widgets/service_card.dart';
+import 'package:nisacleanv1/features/auth/screens/login_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -21,6 +22,39 @@ class HomeScreen extends StatelessWidget {
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
               // TODO: Implement notifications
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              // Show confirmation dialog
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        // Close the dialog
+                        Navigator.pop(context);
+                        // Navigate to login screen and clear the stack
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      },
+                      child: const Text('Logout'),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
         ],

@@ -7,6 +7,7 @@ import 'package:nisacleanv1/features/home/screens/home_screen.dart';
 import 'package:nisacleanv1/features/bookings/screens/bookings_screen.dart';
 import 'package:nisacleanv1/features/wallet/screens/wallet_screen.dart';
 import 'package:nisacleanv1/features/profile/screens/profile_screen.dart';
+import 'package:nisacleanv1/features/auth/screens/login_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,17 +18,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-      ],
-      child: MaterialApp(
-        title: 'NisaClean',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        home: const MainScreen(),
-      ),
+    return MaterialApp(
+      title: 'NisaClean',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
+      home: const LoginScreen(),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const HomeScreen(),
+      },
     );
   }
 }
