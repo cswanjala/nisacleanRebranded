@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:nisacleanv1/features/worker/screens/worker_home_screen.dart';
 import 'package:nisacleanv1/features/worker/screens/worker_jobs_screen.dart';
 import 'package:nisacleanv1/features/worker/screens/worker_earnings_screen.dart';
+import 'package:nisacleanv1/features/worker/screens/worker_services_screen.dart';
 import 'package:nisacleanv1/features/profile/screens/profile_screen.dart';
-import 'package:nisacleanv1/services/auth_service.dart';
 
 class WorkerMainScreen extends StatefulWidget {
   const WorkerMainScreen({super.key});
@@ -14,32 +14,14 @@ class WorkerMainScreen extends StatefulWidget {
 
 class _WorkerMainScreenState extends State<WorkerMainScreen> {
   int _currentIndex = 0;
-  final AuthService _authService = AuthService();
   
   final List<Widget> _screens = [
     const WorkerHomeScreen(),
     const WorkerJobsScreen(),
     const WorkerEarningsScreen(),
+    const WorkerServicesScreen(),
     const ProfileScreen(),
   ];
-
-  Future<void> _handleLogout() async {
-    try {
-      await _authService.logout();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error logging out: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,13 +30,9 @@ class _WorkerMainScreenState extends State<WorkerMainScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
-          if (index == 3) { // Profile tab
-            _handleLogout();
-          } else {
-            setState(() {
-              _currentIndex = index;
-            });
-          }
+          setState(() {
+            _currentIndex = index;
+          });
         },
         destinations: const [
           NavigationDestination(
@@ -73,9 +51,14 @@ class _WorkerMainScreenState extends State<WorkerMainScreen> {
             label: 'Earnings',
           ),
           NavigationDestination(
-            icon: Icon(Icons.logout),
-            selectedIcon: Icon(Icons.logout),
-            label: 'Logout',
+            icon: Icon(Icons.cleaning_services_outlined),
+            selectedIcon: Icon(Icons.cleaning_services),
+            label: 'Services',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),

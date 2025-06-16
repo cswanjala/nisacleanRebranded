@@ -24,16 +24,16 @@ class WorkerJobsScreen extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            _buildJobList('pending'),
-            _buildJobList('in_progress'),
-            _buildJobList('completed'),
+            _buildJobList(context, 'pending'),
+            _buildJobList(context, 'in_progress'),
+            _buildJobList(context, 'completed'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildJobList(String status) {
+  Widget _buildJobList(BuildContext context, String status) {
     // TODO: Replace with actual data from API
     final jobs = [
       {
@@ -141,11 +141,53 @@ class WorkerJobsScreen extends StatelessWidget {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        // TODO: Navigate to job details
-                      },
-                      child: const Text('View Details'),
+                    Row(
+                      children: [
+                        if (status == 'pending')
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              _showStatusUpdateDialog(
+                                context,
+                                job['id'] as String,
+                                'Start Job',
+                                'Are you sure you want to start this job?',
+                                'in_progress',
+                              );
+                            },
+                            icon: const Icon(Icons.play_arrow),
+                            label: const Text('Start'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.green,
+                              side: const BorderSide(color: Colors.green),
+                            ),
+                          )
+                        else if (status == 'in_progress')
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              _showStatusUpdateDialog(
+                                context,
+                                job['id'] as String,
+                                'Complete Job',
+                                'Are you sure you want to mark this job as completed?',
+                                'completed',
+                              );
+                            },
+                            icon: const Icon(Icons.check),
+                            label: const Text('Complete'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.blue,
+                              side: const BorderSide(color: Colors.blue),
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () {
+                            // TODO: Navigate to job details
+                          },
+                          icon: const Icon(Icons.info_outline),
+                          tooltip: 'View Details',
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -183,5 +225,41 @@ class WorkerJobsScreen extends StatelessWidget {
       default:
         return Colors.grey;
     }
+  }
+
+  void _showStatusUpdateDialog(
+    BuildContext context,
+    String jobId,
+    String actionTitle,
+    String message,
+    String newStatus,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          actionTitle,
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          message,
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // TODO: Update job status in API
+              // TODO: Send notification to client
+              Navigator.pop(context);
+            },
+            child: Text(actionTitle),
+          ),
+        ],
+      ),
+    );
   }
 } 
