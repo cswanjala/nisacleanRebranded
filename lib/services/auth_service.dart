@@ -19,16 +19,28 @@ class AuthService {
         }),
       );
 
+      print('Login Response Status: ${response.statusCode}');
+      print('Login Response Body: ${response.body}');
+
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
-        // Save token and user data
-        await _saveAuthData(data['token'], data['user']);
-        return data;
+      if (response.statusCode == 200 && data['success'] == true) {
+        final responseData = data['data'];
+        if (responseData['token'] == null) {
+          throw 'Token not found in response';
+        }
+        // Save token
+        await _saveAuthData(responseData['token'], {'role': 'user'}); // Default role for now
+        return responseData;
       } else {
-        throw data['message'] ?? 'Login failed';
+        final errorMessage = data['message'] ?? 'Login failed';
+        throw errorMessage;
       }
     } catch (e) {
+      print('Login Error: $e');
+      if (e is FormatException) {
+        throw 'Invalid response from server';
+      }
       throw e.toString();
     }
   }

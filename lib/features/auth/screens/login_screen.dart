@@ -34,19 +34,20 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (mounted) {
-          // Navigate based on user role
-          if (response['user']['role'] == 'worker') {
-            Navigator.pushReplacementNamed(context, '/worker-home');
-          } else {
-            Navigator.pushReplacementNamed(context, '/home');
-          }
+          // For now, navigate to home screen since we don't have role in response
+          Navigator.pushReplacementNamed(context, '/home');
         }
       } catch (e) {
         if (mounted) {
+          String errorMessage = e.toString();
+          if (errorMessage.contains('Null is not a subtype of type')) {
+            errorMessage = 'Invalid response from server. Please try again.';
+          }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString()),
+              content: Text(errorMessage),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
             ),
           );
         }
