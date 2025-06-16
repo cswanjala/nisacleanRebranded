@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'core/bloc/auth/auth_bloc.dart';
-import 'features/auth/presentation/screens/login_screen.dart';
-import 'features/auth/presentation/screens/register_screen.dart';
-import 'features/auth/presentation/screens/forgot_password_screen.dart';
-import 'features/home/presentation/screens/home_screen.dart';
-import 'features/booking/presentation/screens/booking_screen.dart';
+import 'package:nisacleanv1/core/theme/app_theme.dart';
+import 'package:nisacleanv1/features/auth/providers/auth_provider.dart';
+import 'package:nisacleanv1/features/home/screens/home_screen.dart';
+import 'package:nisacleanv1/features/bookings/screens/bookings_screen.dart';
+import 'package:nisacleanv1/features/wallet/screens/wallet_screen.dart';
+import 'package:nisacleanv1/features/profile/screens/profile_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,29 +17,71 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AuthBloc(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
       child: MaterialApp(
         title: 'NisaClean',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF1E88E5),
-            primary: const Color(0xFF1E88E5),
-            secondary: const Color(0xFF42A5F5),
-            background: Colors.white,
-          ),
-          textTheme: GoogleFonts.poppinsTextTheme(),
-          useMaterial3: true,
-        ),
-        initialRoute: '/login',
-        routes: {
-          '/login': (context) => const LoginScreen(),
-          '/register': (context) => const RegisterScreen(),
-          '/forgot-password': (context) => const ForgotPasswordScreen(),
-          '/home': (context) => const HomeScreen(),
-          '/booking': (context) => const BookingScreen(),
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
+        home: const MainScreen(),
+      ),
+    );
+  }
+}
+
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _currentIndex = 0;
+  
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const BookingsScreen(),
+    const WalletScreen(),
+    const ProfileScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_currentIndex],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
         },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_today_outlined),
+            selectedIcon: Icon(Icons.calendar_today),
+            label: 'Bookings',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet),
+            label: 'Wallet',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
   }
