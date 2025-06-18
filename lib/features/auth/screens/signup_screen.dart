@@ -19,7 +19,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  String _selectedRole = 'user';
+  String _selectedRole = 'client';
 
   @override
   void dispose() {
@@ -334,8 +334,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         icon: Icon(Icons.arrow_drop_down, color: Colors.grey[400]),
                         items: const [
                           DropdownMenuItem(
-                            value: 'user',
-                            child: Text('User'),
+                            value: 'client',
+                            child: Text('Client'),
                           ),
                           DropdownMenuItem(
                             value: 'worker',

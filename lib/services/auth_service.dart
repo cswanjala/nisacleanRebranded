@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
+  // Update base URL to match your backend
   static const String baseUrl = 'https://api.nisaclean.com';
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
@@ -29,8 +30,11 @@ class AuthService {
         if (responseData['token'] == null) {
           throw 'Token not found in response';
         }
-        // Save token
-        await _saveAuthData(responseData['token'], {'role': 'user'}); // Default role for now
+        // Save token and user data
+        await _saveAuthData(responseData['token'], {
+          'role': responseData['role'] ?? 'client',
+          'token': responseData['token'],
+        });
         return responseData;
       } else {
         final errorMessage = data['message'] ?? 'Login failed';
@@ -45,7 +49,7 @@ class AuthService {
     }
   }
 
-  // Register user
+  // Register user - Updated to match backend API
   Future<Map<String, dynamic>> register({
     required String name,
     required String email,
@@ -54,26 +58,41 @@ class AuthService {
     required String role,
   }) async {
     try {
+      final requestBody = {
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'password': password,
+        'role': role,
+        'location': {
+          'coordinates': [0.0, 0.0] // Default coordinates (can be updated later)
+        }
+      };
+
+      print('Registering user with data: ${jsonEncode(requestBody)}');
+
       final response = await http.post(
         Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'name': name,
-          'email': email,
-          'phone': phone,
-          'password': password,
-          'role': role,
-        }),
+        body: jsonEncode(requestBody),
       );
+
+      print('Registration Response Status: ${response.statusCode}');
+      print('Registration Response Body: ${response.body}');
 
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && data['success'] == true) {
         return data;
       } else {
-        throw data['message'] ?? 'Registration failed';
+        final errorMessage = data['message'] ?? 'Registration failed';
+        throw errorMessage;
       }
     } catch (e) {
+      print('Registration Error: $e');
+      if (e is FormatException) {
+        throw 'Invalid response from server';
+      }
       throw e.toString();
     }
   }

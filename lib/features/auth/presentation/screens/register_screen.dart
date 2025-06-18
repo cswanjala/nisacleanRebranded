@@ -16,6 +16,7 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   UserType _selectedUserType = UserType.client;
@@ -42,6 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _animationController.dispose();
@@ -54,6 +56,15 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
       listener: (context, state) {
         if (state.isAuthenticated) {
           Navigator.pushReplacementNamed(context, '/home');
+        }
+        if (!state.isLoading && state.error == null && !state.isAuthenticated) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Registration successful! Please login.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
         }
       },
       child: Scaffold(
@@ -121,6 +132,23 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                       const SizedBox(height: 20),
                       _buildTextField(
                         context: context,
+                        controller: _phoneController,
+                        label: 'Phone Number',
+                        hint: 'Enter your phone number',
+                        prefixIcon: Icons.phone_outlined,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your phone number';
+                          }
+                          if (value.length < 10) {
+                            return 'Please enter a valid phone number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _buildTextField(
+                        context: context,
                         controller: _passwordController,
                         label: 'Password',
                         hint: 'Enter your password',
@@ -174,12 +202,13 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                                 width: double.infinity,
                                 height: 56,
                                 child: ElevatedButton(
-                                  onPressed: () {
+                                  onPressed: state.isLoading ? null : () {
                                     if (_formKey.currentState!.validate()) {
                                       context.read<AuthBloc>().add(
                                             RegisterRequested(
                                               name: _nameController.text,
                                               email: _emailController.text,
+                                              phone: _phoneController.text,
                                               password: _passwordController.text,
                                               userType: _selectedUserType,
                                             ),
@@ -193,13 +222,22 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  child: Text(
-                                    'Sign Up',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                                  child: state.isLoading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        )
+                                      : Text(
+                                          'Sign Up',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ],
