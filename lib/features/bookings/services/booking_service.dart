@@ -3,20 +3,24 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/booking.dart';
 
-class BookingRepository {
+class BookingService {
   static const String baseUrl = 'https://api.nisaclean.com';
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token');
+    final token = prefs.getString('auth_token');
+    print('Retrieved token: ${token != null ? '${token.substring(0, 20)}...' : 'null'}');
+    return token;
   }
 
   Future<Map<String, String>> _getHeaders() async {
     final token = await _getToken();
-    return {
+    final headers = {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
+    print('Request headers: $headers');
+    return headers;
   }
 
   // Create a new booking
@@ -26,8 +30,8 @@ class BookingRepository {
     required String time,
     required BookingLocation location,
     required String notes,
-    String? bookingType, // 'client assigned' or 'system assigned'
-    String? selectedProvider, // worker ID if client assigned
+    String? bookingType,
+    String? selectedProvider,
   }) async {
     try {
       final headers = await _getHeaders();
@@ -42,15 +46,11 @@ class BookingRepository {
         if (selectedProvider != null) 'selectedProvider': selectedProvider,
       };
 
-      print('Creating booking with data: ${jsonEncode(requestBody)}');
-
       final response = await http.post(
         Uri.parse('$baseUrl/booking/create'),
         headers: headers,
         body: jsonEncode(requestBody),
       );
-
-      print('Create booking response: ${response.statusCode} - ${response.body}');
 
       final data = jsonDecode(response.body);
 
@@ -60,7 +60,6 @@ class BookingRepository {
         throw data['message'] ?? 'Failed to create booking';
       }
     } catch (e) {
-      print('Create booking error: $e');
       throw e.toString();
     }
   }
@@ -90,16 +89,20 @@ class BookingRepository {
       if (search != null) queryParams['search'] = search;
 
       final uri = Uri.parse('$baseUrl/booking/get-bookings').replace(queryParameters: queryParams);
+      print('Requesting bookings from: $uri');
 
       final response = await http.get(uri, headers: headers);
-
-      print('Get bookings response: ${response.statusCode} - ${response.body}');
+      print('Get bookings response status: ${response.statusCode}');
+      print('Get bookings response body: ${response.body}');
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
         final bookingsList = data['data']['bookings'] as List;
         return bookingsList.map((json) => Booking.fromJson(json)).toList();
+      } else if (response.statusCode == 500 && data['message'] == 'invalid token') {
+        // This likely means the user doesn't have admin privileges
+        throw 'Access denied: This endpoint requires admin privileges. Please contact support.';
       } else {
         throw data['message'] ?? 'Failed to fetch bookings';
       }
@@ -119,8 +122,6 @@ class BookingRepository {
         headers: headers,
       );
 
-      print('Get booking by ID response: ${response.statusCode} - ${response.body}');
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
@@ -129,7 +130,6 @@ class BookingRepository {
         throw data['message'] ?? 'Failed to fetch booking';
       }
     } catch (e) {
-      print('Get booking by ID error: $e');
       throw e.toString();
     }
   }
@@ -151,8 +151,6 @@ class BookingRepository {
         }),
       );
 
-      print('Confirm budget response: ${response.statusCode} - ${response.body}');
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
@@ -161,7 +159,6 @@ class BookingRepository {
         throw data['message'] ?? 'Failed to confirm budget';
       }
     } catch (e) {
-      print('Confirm budget error: $e');
       throw e.toString();
     }
   }
@@ -179,8 +176,6 @@ class BookingRepository {
         }),
       );
 
-      print('Start booking response: ${response.statusCode} - ${response.body}');
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
@@ -189,7 +184,6 @@ class BookingRepository {
         throw data['message'] ?? 'Failed to start booking';
       }
     } catch (e) {
-      print('Start booking error: $e');
       throw e.toString();
     }
   }
@@ -207,8 +201,6 @@ class BookingRepository {
         }),
       );
 
-      print('Mark booking complete response: ${response.statusCode} - ${response.body}');
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
@@ -217,7 +209,6 @@ class BookingRepository {
         throw data['message'] ?? 'Failed to mark booking as complete';
       }
     } catch (e) {
-      print('Mark booking complete error: $e');
       throw e.toString();
     }
   }
@@ -235,8 +226,6 @@ class BookingRepository {
         }),
       );
 
-      print('Mark booking closed response: ${response.statusCode} - ${response.body}');
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
@@ -245,7 +234,6 @@ class BookingRepository {
         throw data['message'] ?? 'Failed to mark booking as closed';
       }
     } catch (e) {
-      print('Mark booking closed error: $e');
       throw e.toString();
     }
   }
@@ -263,8 +251,6 @@ class BookingRepository {
         }),
       );
 
-      print('Cancel booking response: ${response.statusCode} - ${response.body}');
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
@@ -273,7 +259,6 @@ class BookingRepository {
         throw data['message'] ?? 'Failed to cancel booking';
       }
     } catch (e) {
-      print('Cancel booking error: $e');
       throw e.toString();
     }
   }
@@ -297,8 +282,6 @@ class BookingRepository {
         }),
       );
 
-      print('Create dispute response: ${response.statusCode} - ${response.body}');
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
@@ -307,7 +290,6 @@ class BookingRepository {
         throw data['message'] ?? 'Failed to create dispute';
       }
     } catch (e) {
-      print('Create dispute error: $e');
       throw e.toString();
     }
   }

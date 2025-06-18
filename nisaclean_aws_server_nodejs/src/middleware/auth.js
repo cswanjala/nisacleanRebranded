@@ -6,21 +6,31 @@ dotenv.config({ path: ".././src/config/config.env" });
 
 const isAuthenticated = async (req, res, next) => {
   try {
-    const token = req.headers.authorization;
-    console.log(token);
-    if (!token) {
+    const authHeader = req.headers.authorization;
+    console.log('Auth header:', authHeader);
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ success: false, message: "Not logged in" });
     }
+    
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    console.log('Extracted token:', token);
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Decoded token:', decoded);
+    
     req.user = await User.findById(decoded._id);
     if (!req.user) {
       return res
         .status(401)
         .json({ success: false, message: "User not found" });
     }
+    
+    console.log('User found:', req.user.name, req.user.role);
     next();
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Auth error:', error.message);
+    res.status(401).json({ success: false, message: "Invalid token" });
   }
 };
 

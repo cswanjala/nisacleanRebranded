@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:nisacleanv1/features/bookings/widgets/location_picker.dart';
-import 'package:nisacleanv1/features/bookings/repositories/booking_repository.dart';
+import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
+import 'package:nisacleanv1/features/bookings/models/booking.dart';
 import 'package:nisacleanv1/features/bookings/screens/service_provider_selection_screen.dart';
 
 class NewBookingScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class NewBookingScreen extends StatefulWidget {
 
 class _NewBookingScreenState extends State<NewBookingScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _bookingService = BookingService();
   String? _selectedService;
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
@@ -58,22 +60,42 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Get booking repository from provider
-      // final repository = context.read<BookingRepository>();
-      // await repository.createBooking(
-      //   serviceName: _selectedService!,
-      //   scheduledDate: _selectedDate!,
-      //   scheduledTime: _selectedTime!.format(context),
-      //   amount: 0, // TODO: Get from service price
-      //   location: _selectedLocation,
-      //   notes: _notes,
-      // );
+      if (_selectedLocation == null || _selectedCoordinates == null) {
+        throw 'Please select a location';
+      }
+
+      final location = BookingLocation(
+        address: _selectedLocation!,
+        coordinates: [_selectedCoordinates!.longitude, _selectedCoordinates!.latitude],
+      );
+
+      await _bookingService.createBooking(
+        service: _selectedService!,
+        date: _selectedDate!.toIso8601String().split('T')[0], // YYYY-MM-DD format
+        time: _selectedTime!.format(context), // HH:MM format
+        location: location,
+        notes: _notes ?? '',
+        bookingType: 'system assigned', // Default to system assigned
+      );
 
       if (mounted) {
-        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Booking created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, true);
       }
     } catch (e) {
-      // TODO: Show error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating booking: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

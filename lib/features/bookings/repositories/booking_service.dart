@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/booking.dart';
 
-class BookingRepository {
+class BookingService {
   static const String baseUrl = 'https://api.nisaclean.com';
 
   Future<String?> _getToken() async {
