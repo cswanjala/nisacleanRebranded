@@ -4,6 +4,8 @@ import 'package:nisacleanv1/features/worker/screens/worker_jobs_screen.dart';
 import 'package:nisacleanv1/features/worker/screens/worker_earnings_screen.dart';
 import 'package:nisacleanv1/features/worker/screens/worker_services_screen.dart';
 import 'package:nisacleanv1/features/profile/screens/profile_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:nisacleanv1/providers/auth_provider.dart';
 
 class WorkerMainScreen extends StatefulWidget {
   const WorkerMainScreen({super.key});
@@ -26,6 +28,20 @@ class _WorkerMainScreenState extends State<WorkerMainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Worker Dashboard'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              // Use Provider to logout
+              await Provider.of<AuthProvider>(context, listen: false).logout();
+              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+            },
+          ),
+        ],
+      ),
       body: _screens[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,

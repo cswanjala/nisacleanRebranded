@@ -301,4 +301,69 @@ class BookingService {
       throw data['message'] ?? 'Failed to fetch providers';
     }
   }
+
+  // Fetch bookings for the current provider (worker)
+  Future<List<Booking>> getProviderBookings({String? date}) async {
+    final headers = await _getHeaders();
+    final query = date != null ? '?date=$date' : '';
+    final uri = Uri.parse('${baseUrl}/booking/provider-bookings$query');
+    final response = await http.get(uri, headers: headers);
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200 && data['success'] == true) {
+      final bookingsList = data['data'] as List;
+      return bookingsList.map((json) => Booking.fromJson(json)).toList();
+    } else {
+      throw data['message'] ?? 'Failed to fetch provider bookings';
+    }
+  }
+
+  // Send invoice (for workers)
+  Future<Map<String, dynamic>> sendInvoice({
+    required String bookingId,
+    required double amount,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/booking/send-invoice'),
+        headers: headers,
+        body: jsonEncode({
+          'bookingId': bookingId,
+          'amount': amount,
+        }),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        return data['data'];
+      } else {
+        throw data['message'] ?? 'Failed to send invoice';
+      }
+    } catch (e) {
+      throw e.toString();
+    }
+  }
+
+  // Approve invoice (for clients)
+  Future<Map<String, dynamic>> approveInvoice({
+    required String bookingId,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/booking/approve-invoice'),
+        headers: headers,
+        body: jsonEncode({
+          'bookingId': bookingId,
+        }),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        return data['data'];
+      } else {
+        throw data['message'] ?? 'Failed to approve invoice';
+      }
+    } catch (e) {
+      throw e.toString();
+    }
+  }
 } 

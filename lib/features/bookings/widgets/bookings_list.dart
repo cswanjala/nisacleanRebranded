@@ -48,7 +48,7 @@ class BookingsList extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'KES ${booking['amount'].toStringAsFixed(2)}',
+                'KES ${(booking['amount'] ?? 0.0).toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontWeight: FontWeight.w500,
                 ),

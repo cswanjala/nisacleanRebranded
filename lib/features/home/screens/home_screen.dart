@@ -2,9 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:nisacleanv1/features/bookings/widgets/bookings_list.dart';
 import 'package:nisacleanv1/features/home/widgets/service_card.dart';
 import 'package:nisacleanv1/features/auth/screens/login_screen.dart';
+import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
+import 'package:nisacleanv1/features/bookings/models/booking.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final BookingService _bookingService = BookingService();
+  List<Booking> _recentBookings = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRecentBookings();
+  }
+
+  Future<void> _fetchRecentBookings() async {
+    setState(() => _isLoading = true);
+    try {
+      final bookings = await _bookingService.getBookings(limit: 3);
+      setState(() {
+        _recentBookings = bookings;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _recentBookings = [];
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -250,35 +283,53 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        BookingsList(
-          bookings: [
-            {
-              'id': 'BK001',
-              'service': 'House Cleaning',
-              'date': '2024-03-20',
-              'time': '10:00 AM',
-              'amount': 2500.00,
-              'status': 'pending',
-            },
-            {
-              'id': 'BK002',
-              'service': 'Office Cleaning',
-              'date': '2024-03-21',
-              'time': '2:00 PM',
-              'amount': 5000.00,
-              'status': 'confirmed',
-            },
-            {
-              'id': 'BK003',
-              'service': 'Carpet Cleaning',
-              'date': '2024-03-19',
-              'time': '11:30 AM',
-              'amount': 3500.00,
-              'status': 'completed',
-            },
-          ],
-        ),
+        if (_isLoading)
+          const Center(child: CircularProgressIndicator())
+        else if (_recentBookings.isEmpty)
+          _buildEmptyState('No recent bookings', Icons.history_outlined)
+        else
+          BookingsList(
+            bookings: _recentBookings
+                .map((b) => {
+                      'id': b.id,
+                      'service': b.service,
+                      'date': b.date,
+                      'time': b.time,
+                      'amount': b.amount,
+                      'status': b.status.toString().split('.').last,
+                    })
+                .toList(),
+          ),
       ],
+    );
+  }
+
+  Widget _buildEmptyState(String message, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 48,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 } 

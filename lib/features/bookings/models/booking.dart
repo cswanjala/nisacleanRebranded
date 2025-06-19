@@ -39,11 +39,15 @@ class BookingUser {
   final String id;
   final String name;
   final String email;
+  final String? phone;
+  final Map<String, dynamic>? location;
 
   BookingUser({
     required this.id,
     required this.name,
     required this.email,
+    this.phone,
+    this.location,
   });
 
   factory BookingUser.fromJson(Map<String, dynamic> json) {
@@ -51,6 +55,8 @@ class BookingUser {
       id: json['_id'] as String,
       name: json['name'] as String,
       email: json['email'] as String,
+      phone: json['phone'] as String?,
+      location: json['location'] as Map<String, dynamic>?,
     );
   }
 
@@ -59,6 +65,8 @@ class BookingUser {
       '_id': id,
       'name': name,
       'email': email,
+      if (phone != null) 'phone': phone,
+      if (location != null) 'location': location,
     };
   }
 }
@@ -81,6 +89,9 @@ class Booking {
   final DateTime? bookingEndTime;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final double? invoiceAmount;
+  final bool? invoiceSent;
+  final bool? invoiceApproved;
 
   Booking({
     required this.id,
@@ -100,16 +111,19 @@ class Booking {
     this.bookingEndTime,
     required this.createdAt,
     required this.updatedAt,
+    this.invoiceAmount,
+    this.invoiceSent,
+    this.invoiceApproved,
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
     BookingUser parseUser(dynamic userJson) {
       if (userJson is String) {
-        return BookingUser(id: userJson, name: '', email: '');
+        return BookingUser(id: userJson, name: '', email: '', phone: null, location: null);
       } else if (userJson is Map<String, dynamic>) {
         return BookingUser.fromJson(userJson);
       } else {
-        return BookingUser(id: '', name: '', email: '');
+        return BookingUser(id: '', name: '', email: '', phone: null, location: null);
       }
     }
     return Booking(
@@ -137,6 +151,9 @@ class Booking {
           : null,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
+      invoiceAmount: json['invoiceAmount'] != null ? (json['invoiceAmount'] as num).toDouble() : null,
+      invoiceSent: json['invoiceSent'] as bool?,
+      invoiceApproved: json['invoiceApproved'] as bool?,
     );
   }
 
@@ -159,6 +176,9 @@ class Booking {
       'bookingEndTime': bookingEndTime?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'invoiceAmount': invoiceAmount,
+      'invoiceSent': invoiceSent,
+      'invoiceApproved': invoiceApproved,
     };
   }
 } 

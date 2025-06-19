@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
+import 'package:nisacleanv1/features/bookings/models/booking.dart';
 
 class WorkerHomeScreen extends StatefulWidget {
   const WorkerHomeScreen({super.key});
@@ -13,6 +15,38 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   CalendarFormat _calendarFormat = CalendarFormat.week;
+
+  final BookingService _bookingService = BookingService();
+  List<Booking> _jobs = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDay = DateTime.now();
+    _fetchJobsForDay(_selectedDay!);
+  }
+
+  Future<void> _fetchJobsForDay(DateTime day) async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final jobs = await _bookingService.getProviderBookings(date: day.toIso8601String().split('T')[0]);
+      setState(() {
+        _jobs = jobs;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _jobs = [];
+        _isLoading = false;
+        _error = e.toString();
+      });
+    }
+  }
 
   // TODO: Replace with actual data from API
   final List<Map<String, dynamic>> _events = [
@@ -193,6 +227,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             _selectedDay = selectedDay;
             _focusedDay = focusedDay;
           });
+          _fetchJobsForDay(selectedDay);
         },
         onFormatChanged: (format) {
           setState(() {
@@ -242,69 +277,23 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   }
 
   Widget _buildScheduleList() {
-    // Sample data for demonstration
-    final schedules = [
-      {
-        'id': '1',
-        'title': 'House Cleaning',
-        'client': 'John Doe',
-        'time': '10:00 AM - 12:00 PM',
-        'address': '123 Main St, Nairobi',
-        'status': 'upcoming',
-        'date': DateTime.now(),
-      },
-      {
-        'id': '2',
-        'title': 'Office Cleaning',
-        'client': 'Jane Smith',
-        'time': '2:00 PM - 4:00 PM',
-        'address': '456 Business Ave, Nairobi',
-        'status': 'upcoming',
-        'date': DateTime.now(),
-      },
-      {
-        'id': '3',
-        'title': 'Apartment Cleaning',
-        'client': 'Mike Johnson',
-        'time': '9:00 AM - 11:00 AM',
-        'address': '789 Park View, Nairobi',
-        'status': 'completed',
-        'date': DateTime.now().subtract(const Duration(days: 1)),
-      },
-      {
-        'id': '4',
-        'title': 'Commercial Cleaning',
-        'client': 'Sarah Wilson',
-        'time': '1:00 PM - 3:00 PM',
-        'address': '321 Business Park, Nairobi',
-        'status': 'in_progress',
-        'date': DateTime.now().add(const Duration(days: 1)),
-      },
-      {
-        'id': '5',
-        'title': 'Deep Cleaning',
-        'client': 'David Brown',
-        'time': '11:00 AM - 2:00 PM',
-        'address': '567 Lake View, Nairobi',
-        'status': 'upcoming',
-        'date': DateTime.now().add(const Duration(days: 1)),
-      },
-      {
-        'id': '6',
-        'title': 'Regular Cleaning',
-        'client': 'Emma Davis',
-        'time': '3:00 PM - 5:00 PM',
-        'address': '890 Garden Estate, Nairobi',
-        'status': 'cancelled',
-        'date': DateTime.now().add(const Duration(days: 2)),
-      },
-    ];
-
-    final daySchedules = schedules.where((schedule) {
-      return isSameDay(schedule['date'] as DateTime, _selectedDay ?? DateTime.now());
-    }).toList();
-
-    if (daySchedules.isEmpty) {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_error != null) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          'Error loading jobs: $_error!',
+          style: GoogleFonts.poppins(color: Colors.red, fontSize: 16),
+        ),
+      );
+    }
+    final dayJobs = _jobs;
+    if (dayJobs.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -336,55 +325,45 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         ),
       );
     }
-
-    return Column(
-      children: [
-        ...daySchedules.map((schedule) {
-          return Column(
-            children: [
-              _buildScheduleItem(
-                context,
-                schedule['title'] as String,
-                schedule['time'] as String,
-                schedule['address'] as String,
-                _getStatusColor(schedule['status'] as String),
-              ),
-              if (schedule != daySchedules.last)
-                const Divider(color: Colors.white24),
-            ],
-          );
-        }).toList(),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${daySchedules.length} ${daySchedules.length == 1 ? 'Booking' : 'Bookings'}',
-                style: GoogleFonts.poppins(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AllBookingsScreen(schedules: schedules),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.calendar_month),
-                label: const Text('View All'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: dayJobs.length,
+      separatorBuilder: (context, index) => const Divider(color: Colors.white24),
+      itemBuilder: (context, index) {
+        final job = dayJobs[index];
+        final statusStr = job.status.toString().split('.').last;
+        String statusLabel = '';
+        switch (statusStr) {
+          case 'pending':
+            statusLabel = 'Pending';
+            break;
+          case 'confirmation':
+            statusLabel = 'Awaiting Confirmation';
+            break;
+          case 'inprogress':
+            statusLabel = 'In Progress';
+            break;
+          case 'completed':
+            statusLabel = 'Completed';
+            break;
+          case 'cancelled':
+            statusLabel = 'Cancelled';
+            break;
+          default:
+            statusLabel = statusStr;
+        }
+        return _buildScheduleItem(
+          context,
+          job.service,
+          job.time,
+          job.location.address,
+          _getStatusColor(statusStr),
+          clientName: job.user.name,
+          statusLabel: statusLabel,
+          booking: job,
+        );
+      },
     );
   }
 
@@ -393,70 +372,124 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     String title,
     String time,
     String location,
-    Color color,
-  ) {
+    Color color, {
+    String? clientName,
+    String? statusLabel,
+    Booking? booking,
+  }) {
+    final isPending = statusLabel?.toLowerCase() == 'pending';
+    final canSendInvoice = isPending && (booking?.invoiceSent != true);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 4,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+          Icon(Icons.cleaning_services, color: color, size: 32),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                    color: Colors.white,
-                  ),
-                ),
+                Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.access_time, size: 16, color: Colors.white70),
+                    Icon(Icons.access_time, size: 14, color: Colors.white70),
                     const SizedBox(width: 4),
-                    Text(
-                      time,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white70,
-                      ),
-                    ),
+                    Text(time, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.location_on, size: 16, color: Colors.white70),
+                    Icon(Icons.location_on, size: 14, color: Colors.white70),
                     const SizedBox(width: 4),
                     Expanded(
-                      child: Text(
-                        location,
-                        style: GoogleFonts.poppins(
-                          color: Colors.white70,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: Text(location, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
                     ),
                   ],
                 ),
+                if (clientName != null && clientName.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.person, size: 14, color: Colors.white70),
+                      const SizedBox(width: 4),
+                      Text('Client: $clientName', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ],
+                if (canSendInvoice) ...[
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final amount = await showDialog<double>(
+                        context: context,
+                        builder: (ctx) {
+                          final controller = TextEditingController();
+                          return AlertDialog(
+                            title: const Text('Send Invoice'),
+                            content: TextField(
+                              controller: controller,
+                              keyboardType: TextInputType.numberWithOptions(decimal: true),
+                              decoration: const InputDecoration(labelText: 'Amount'),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  final value = double.tryParse(controller.text);
+                                  if (value != null && value > 0) {
+                                    Navigator.pop(ctx, value);
+                                  }
+                                },
+                                child: const Text('Send'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                      if (amount != null) {
+                        try {
+                          await _bookingService.sendInvoice(bookingId: booking!.id, amount: amount);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Invoice sent to client!')),
+                          );
+                          _fetchJobsForDay(_selectedDay!); // Refresh
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to send invoice: $e')),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.receipt_long),
+                    label: const Text('Send Invoice'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.arrow_forward_ios, color: Colors.white70),
-            onPressed: () {
-              // TODO: Navigate to job details
-            },
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              statusLabel ?? '',
+              style: GoogleFonts.poppins(color: color, fontSize: 12, fontWeight: FontWeight.w500),
+            ),
           ),
         ],
       ),
