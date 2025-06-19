@@ -41,8 +41,8 @@ class _WalletScreenState extends State<WalletScreen> with TickerProviderStateMix
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
+          child: Column(
+            children: [
             // Balance
             Padding(
               padding: const EdgeInsets.only(top: 16, bottom: 8),
@@ -65,7 +65,7 @@ class _WalletScreenState extends State<WalletScreen> with TickerProviderStateMix
                   Text(
                     '0796247784',
                     style: const TextStyle(color: Colors.white38, fontSize: 14),
-                  ),
+                    ),
                   TextButton(
                     onPressed: () {},
                     style: TextButton.styleFrom(
@@ -124,16 +124,16 @@ class _WalletScreenState extends State<WalletScreen> with TickerProviderStateMix
             ),
             // TabBarView
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildTransactionsTab(),
-                  _buildPendingTab(),
-                  _buildStatementsTab(),
-                ],
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildTransactionsTab(),
+                    _buildPendingTab(),
+                    _buildStatementsTab(),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
         ),
       ),
     );
@@ -175,32 +175,32 @@ class _WalletScreenState extends State<WalletScreen> with TickerProviderStateMix
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        child: Column(
+      child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+        children: [
             Icon(Icons.download_rounded, color: Colors.blue[300], size: 48),
             const SizedBox(height: 16),
-            const Text(
+          const Text(
               'Export your full transaction history.',
               style: TextStyle(fontSize: 15, color: Colors.white70),
               textAlign: TextAlign.center,
-            ),
+          ),
             const SizedBox(height: 18),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white10,
-                foregroundColor: Colors.white,
+              foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 0,
-              ),
-              onPressed: () {},
-              icon: const Icon(Icons.download),
-              label: const Text('Export Statement'),
             ),
-          ],
+            onPressed: () {},
+            icon: const Icon(Icons.download),
+            label: const Text('Export Statement'),
+          ),
+        ],
         ),
       ),
     );

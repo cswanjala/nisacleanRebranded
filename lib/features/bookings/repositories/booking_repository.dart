@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/booking.dart';
+import 'package:nisacleanv1/core/constants/api_constants.dart';
 
 class BookingRepository {
-  static const String baseUrl = 'https://api.nisaclean.com';
+  static const String baseUrl = ApiConstants.baseUrl;
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();

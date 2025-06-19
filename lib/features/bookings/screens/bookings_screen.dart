@@ -121,13 +121,13 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                   ),
                 )
               : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildBookingList('pending'),
+        controller: _tabController,
+        children: [
+          _buildBookingList('pending'),
                     _buildBookingList('inprogress'),
-                    _buildBookingList('completed'),
-                  ],
-                ),
+          _buildBookingList('completed'),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(

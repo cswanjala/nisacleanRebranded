@@ -232,12 +232,12 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                                           ),
                                         )
                                       : Text(
-                                          'Sign Up',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
+                                    'Sign Up',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],

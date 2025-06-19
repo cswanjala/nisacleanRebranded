@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/booking.dart';
+import 'package:nisacleanv1/core/constants/api_constants.dart';
 
 class BookingService {
-  static const String baseUrl = 'https://api.nisaclean.com';
+  static const String baseUrl = ApiConstants.baseUrl;
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -64,50 +65,25 @@ class BookingService {
     }
   }
 
-  // Get bookings for the current user
+  // Get bookings for the current user (client)
   Future<List<Booking>> getBookings({
-    String? status,
-    String? service,
-    String? dateFrom,
-    String? dateTo,
-    String? search,
     int page = 1,
     int limit = 10,
   }) async {
     try {
       final headers = await _getHeaders();
-      
-      final queryParams = <String, String>{
-        'page': page.toString(),
-        'limit': limit.toString(),
-      };
-      
-      if (status != null) queryParams['status'] = status;
-      if (service != null) queryParams['service'] = service;
-      if (dateFrom != null) queryParams['dateFrom'] = dateFrom;
-      if (dateTo != null) queryParams['dateTo'] = dateTo;
-      if (search != null) queryParams['search'] = search;
-
-      final uri = Uri.parse('$baseUrl/booking/get-bookings').replace(queryParameters: queryParams);
-      print('Requesting bookings from: $uri');
-
+      final uri = Uri.parse('$baseUrl/booking/my-bookings');
       final response = await http.get(uri, headers: headers);
-      print('Get bookings response status: ${response.statusCode}');
-      print('Get bookings response body: ${response.body}');
-
+      print('Get my bookings response: \\${response.statusCode} - \\${response.body}');
       final data = jsonDecode(response.body);
-
       if (response.statusCode == 200 && data['success'] == true) {
-        final bookingsList = data['data']['bookings'] as List;
+        final bookingsList = data['data'] as List;
         return bookingsList.map((json) => Booking.fromJson(json)).toList();
-      } else if (response.statusCode == 500 && data['message'] == 'invalid token') {
-        // This likely means the user doesn't have admin privileges
-        throw 'Access denied: This endpoint requires admin privileges. Please contact support.';
       } else {
         throw data['message'] ?? 'Failed to fetch bookings';
       }
     } catch (e) {
-      print('Get bookings error: $e');
+      print('Get my bookings error: \\${e.toString()}');
       throw e.toString();
     }
   }
@@ -291,6 +267,38 @@ class BookingService {
       }
     } catch (e) {
       throw e.toString();
+    }
+  }
+
+  // Fetch available providers for a service and location
+  Future<List<Map<String, dynamic>>> getAvailableProviders({
+    required String service,
+    required double lng,
+    required double lat,
+  }) async {
+    final headers = await _getHeaders();
+    final uri = Uri.parse('$baseUrl/booking/available-providers?service=$service&lng=$lng&lat=$lat');
+    final response = await http.get(uri, headers: headers);
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200 && data['success'] == true) {
+      final providers = data['data'] as List;
+      return providers.map((e) => Map<String, dynamic>.from(e)).toList();
+    } else {
+      throw data['message'] ?? 'Failed to fetch providers';
+    }
+  }
+
+  // Fetch all available service providers
+  Future<List<Map<String, dynamic>>> getAllAvailableProviders() async {
+    final headers = await _getHeaders();
+    final uri = Uri.parse('${baseUrl}/booking/all-available-providers');
+    final response = await http.get(uri, headers: headers);
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200 && data['success'] == true) {
+      final providers = data['data'] as List;
+      return providers.map((e) => Map<String, dynamic>.from(e)).toList();
+    } else {
+      throw data['message'] ?? 'Failed to fetch providers';
     }
   }
 } 

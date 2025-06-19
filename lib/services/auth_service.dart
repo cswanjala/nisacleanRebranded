@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nisacleanv1/core/constants/api_constants.dart';
 
 class AuthService {
-  // Update base URL to match your backend
-  static const String baseUrl = 'https://api.nisaclean.com';
+  // Use centralized base URL
+  static const String baseUrl = ApiConstants.baseUrl;
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
 

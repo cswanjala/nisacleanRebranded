@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
+import 'package:nisacleanv1/features/bookings/models/booking.dart';
 
 class ServiceProviderSelectionScreen extends StatefulWidget {
   final Map<String, dynamic> bookingDetails;
@@ -14,7 +16,78 @@ class ServiceProviderSelectionScreen extends StatefulWidget {
 }
 
 class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectionScreen> {
-  bool _autoAssign = false;
+  bool _autoAssign = true;
+  String? _selectedProviderId;
+  bool _isLoading = false;
+  List<Map<String, dynamic>> _providers = [];
+  final BookingService _bookingService = BookingService();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProviders();
+  }
+
+  Future<void> _fetchProviders() async {
+    setState(() { _isLoading = true; });
+    try {
+      final providers = await _bookingService.getAllAvailableProviders();
+      setState(() {
+        _providers = providers;
+      });
+    } catch (e) {
+      setState(() {
+        _providers = [];
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching providers: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() { _isLoading = false; });
+    }
+  }
+
+  Future<void> _confirmBooking() async {
+    setState(() => _isLoading = true);
+    try {
+      final details = widget.bookingDetails;
+      final bookingType = _autoAssign ? 'system assigned' : 'client assigned';
+      final selectedProvider = !_autoAssign ? _selectedProviderId : null;
+      if (bookingType == 'client assigned' && selectedProvider == null) {
+        throw 'Please select a service provider.';
+      }
+      // Compose location
+      final location = BookingLocation(
+        address: details['address'] as String,
+        coordinates: details['coordinates'] ?? [0.0, 0.0],
+      );
+      await _bookingService.createBooking(
+        service: details['service'] as String,
+        date: (details['date'] as DateTime).toIso8601String().split('T')[0],
+        time: (details['time'] as TimeOfDay).format(context),
+        location: location,
+        notes: details['notes'] ?? '',
+        bookingType: bookingType,
+        selectedProvider: selectedProvider,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking created successfully!'), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error creating booking: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,24 +98,23 @@ class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectio
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSelectionOption(),
-            const SizedBox(height: 24),
-            if (!_autoAssign) _buildServiceProviderList(),
-          ],
-        ),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSelectionOption(),
+                  const SizedBox(height: 24),
+                  if (!_autoAssign) _buildServiceProviderList(),
+                ],
+              ),
+            ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16),
         child: ElevatedButton(
-          onPressed: () {
-            // TODO: Handle booking confirmation
-            Navigator.pop(context);
-          },
+          onPressed: _isLoading ? null : _confirmBooking,
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
@@ -84,7 +156,10 @@ class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectio
                     subtitle: 'Let the system choose the best provider',
                     icon: Icons.auto_awesome,
                     isSelected: _autoAssign,
-                    onTap: () => setState(() => _autoAssign = true),
+                    onTap: () => setState(() {
+                      _autoAssign = true;
+                      _selectedProviderId = null;
+                    }),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -155,24 +230,6 @@ class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectio
   }
 
   Widget _buildServiceProviderList() {
-    // TODO: Replace with actual data from API
-    final providers = [
-      {
-        'id': '1',
-        'name': 'John Doe',
-        'rating': 4.8,
-        'jobs': 156,
-        'image': 'assets/avatar_placeholder.png',
-      },
-      {
-        'id': '2',
-        'name': 'Jane Smith',
-        'rating': 4.9,
-        'jobs': 203,
-        'image': 'assets/avatar_placeholder.png',
-      },
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -187,39 +244,29 @@ class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectio
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: providers.length,
+          itemCount: _providers.length,
           itemBuilder: (context, index) {
-            final provider = providers[index];
+            final provider = _providers[index];
+            final profilePic = provider['profilePic'] as String?;
+            final name = provider['name'] as String? ?? 'Unknown';
+            final id = provider['_id'] as String? ?? '';
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               child: ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: AssetImage(provider['image'] as String),
-                ),
+                leading: profilePic != null && profilePic.isNotEmpty
+                    ? CircleAvatar(backgroundImage: NetworkImage(profilePic))
+                    : const CircleAvatar(child: Icon(Icons.person)),
                 title: Text(
-                  provider['name'] as String,
+                  name,
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
                 ),
-                subtitle: Row(
-                  children: [
-                    Icon(Icons.star, size: 16, color: Colors.amber),
-                    const SizedBox(width: 4),
-                    Text(
-                      provider['rating'].toString(),
-                      style: GoogleFonts.poppins(),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${provider['jobs']} jobs',
-                      style: GoogleFonts.poppins(color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
                 trailing: Radio<String>(
-                  value: provider['id'] as String,
-                  groupValue: null, // TODO: Add selected provider state
+                  value: id,
+                  groupValue: _selectedProviderId,
                   onChanged: (value) {
-                    // TODO: Handle provider selection
+                    setState(() {
+                      _selectedProviderId = value;
+                    });
                   },
                 ),
               ),

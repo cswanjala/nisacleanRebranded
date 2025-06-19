@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:nisacleanv1/core/constants/api_constants.dart';
 
 class ApiClient {
-  static const String baseUrl = 'YOUR_API_BASE_URL'; // TODO: Replace with actual API URL
+  static const String baseUrl = ApiConstants.baseUrl;
   
   late final Dio _dio;
 

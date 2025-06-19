@@ -34,4 +34,6 @@ router
   .get(isAuthenticated, isAdmin, booking.getBookings);
 router.route("/get-booking-byId").get(isAuthenticated, booking.getBookingbyId);
 
+router.route("/available-providers").get(isAuthenticated, booking.getAvailableProviders);
+
 module.exports = router;

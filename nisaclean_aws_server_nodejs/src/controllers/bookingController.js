@@ -784,6 +784,46 @@ const getBookingbyId = async (req, res) => {
   }
 };
 
+// Get available service providers for a service and location
+const getAvailableProviders = async (req, res) => {
+  try {
+    const { service, lng, lat } = req.query;
+    if (!service || !lng || !lat) {
+      return ErrorHandler("service, lng, and lat are required", 400, res);
+    }
+    const location = {
+      type: "Point",
+      coordinates: [parseFloat(lng), parseFloat(lat)],
+    };
+    const closestWorkers = await User.find({
+      role: "worker",
+      isActive: true,
+      availability: true,
+      location: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: location.coordinates,
+          },
+          $maxDistance: 50000, // 50km
+        },
+      },
+      services: { $in: [service] },
+    })
+      .limit(5)
+      .select("_id name profilePic rating availability");
+    return SuccessHandler(
+      "Available providers fetched successfully",
+      200,
+      res,
+      closestWorkers
+    );
+  } catch (error) {
+    console.error("Error fetching available providers:", error);
+    return ErrorHandler("Failed to fetch available providers", 500, res);
+  }
+};
+
 module.exports = {
   createBooking,
   confirmBudget,
@@ -798,4 +838,5 @@ module.exports = {
 
   getBookings,
   getBookingbyId,
+  getAvailableProviders,
 };
