@@ -193,27 +193,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                 context,
                 MaterialPageRoute(
                   builder: (context) => BookingDetailsScreen(
-                    booking: {
-                      'id': booking.id,
-                      'service': booking.service,
-                      'date': booking.date,
-                      'time': booking.time,
-                      'status': booking.status.toString().split('.').last,
-                      'amount': booking.amount,
-                      'notes': booking.notes,
-                      'location': {
-                        'address': booking.location.address,
-                        'coordinates': booking.location.coordinates,
-                      },
-                      'user': {
-                        'name': booking.user.name,
-                        'email': booking.user.email,
-                      },
-                      'worker': booking.worker != null ? {
-                        'name': booking.worker!.name,
-                        'email': booking.worker!.email,
-                      } : null,
-                    },
+                    booking: booking,
                   ),
                 ),
               );

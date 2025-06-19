@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:nisacleanv1/features/payments/screens/payment_screen.dart';
 import 'package:nisacleanv1/features/location/screens/location_picker_screen.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:nisacleanv1/features/bookings/models/booking.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
-  final Map<String, dynamic> booking;
+  final Booking booking;
 
   const BookingDetailsScreen({
     super.key,
@@ -20,9 +21,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.booking['id']),
+        title: Text(widget.booking.id),
         actions: [
-          if (widget.booking['status'] == 'pending')
+          if (widget.booking.status == BookingStatus.pending)
             IconButton(
               icon: const Icon(Icons.cancel_outlined),
               onPressed: () {
@@ -62,7 +63,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           _buildScheduleCard(),
           const SizedBox(height: 16),
           _buildPaymentCard(),
-          if (widget.booking['notes'] != null) ...[
+          if (widget.booking.notes.isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildNotesCard(),
           ],
@@ -124,7 +125,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _buildInfoRow('Service', widget.booking['service']),
+            _buildInfoRow('Service', widget.booking.service),
             const SizedBox(height: 8),
             InkWell(
               onTap: () async {
@@ -132,10 +133,10 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => LocationPickerScreen(
-                      initialLocation: widget.booking['location'] != null
+                      initialLocation: widget.booking.location.coordinates.length == 2
                           ? LatLng(
-                              widget.booking['location']['latitude'],
-                              widget.booking['location']['longitude'],
+                              widget.booking.location.coordinates[1],
+                              widget.booking.location.coordinates[0],
                             )
                           : null,
                     ),
@@ -145,10 +146,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 if (location != null) {
                   // TODO: Update location in backend
                   setState(() {
-                    widget.booking['location'] = {
-                      'latitude': location.latitude,
-                      'longitude': location.longitude,
-                    };
+                    // This is just for UI update; backend update needed for real change
+                    widget.booking.location.coordinates[0] = location.longitude;
+                    widget.booking.location.coordinates[1] = location.latitude;
                   });
                 }
               },
@@ -164,8 +164,8 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                   Row(
                     children: [
                       Text(
-                        widget.booking['location'] != null
-                            ? '${widget.booking['location']['latitude'].toStringAsFixed(4)}, ${widget.booking['location']['longitude'].toStringAsFixed(4)}'
+                        widget.booking.location.coordinates.length == 2
+                            ? '${widget.booking.location.coordinates[1].toStringAsFixed(4)}, ${widget.booking.location.coordinates[0].toStringAsFixed(4)}'
                             : 'Not specified',
                         style: const TextStyle(
                           fontWeight: FontWeight.w500,
@@ -204,9 +204,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _buildInfoRow('Date', widget.booking['date']),
+            _buildInfoRow('Date', widget.booking.date),
             const SizedBox(height: 8),
-            _buildInfoRow('Time', widget.booking['time']),
+            _buildInfoRow('Time', widget.booking.time),
           ],
         ),
       ),
@@ -229,7 +229,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _buildInfoRow('Amount', 'KES ${widget.booking['amount'].toStringAsFixed(2)}'),
+            _buildInfoRow('Amount', 'KES ${widget.booking.amount?.toStringAsFixed(2) ?? '0.00'}'),
             const SizedBox(height: 8),
             _buildInfoRow('Payment Status', _getPaymentStatus()),
           ],
@@ -254,7 +254,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Text(widget.booking['notes']),
+            Text(widget.booking.notes),
           ],
         ),
       ),
@@ -282,7 +282,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   }
 
   Widget _buildBottomBar(BuildContext context) {
-    if (widget.booking['status'] == 'completed') return const SizedBox.shrink();
+    if (widget.booking.status == BookingStatus.completed) return const SizedBox.shrink();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -298,7 +298,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       ),
       child: Row(
         children: [
-          if (widget.booking['status'] == 'pending') ...[
+          if (widget.booking.status == BookingStatus.pending) ...[
             Expanded(
               child: OutlinedButton(
                 onPressed: () {
@@ -312,14 +312,14 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           Expanded(
             child: ElevatedButton(
               onPressed: () async {
-                if (widget.booking['status'] == 'pending') {
+                if (widget.booking.status == BookingStatus.pending) {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => PaymentScreen(
-                        amount: widget.booking['amount'],
-                        reference: widget.booking['id'],
-                        description: 'Payment for ${widget.booking['service']}',
+                        amount: widget.booking.amount ?? 0.0,
+                        reference: widget.booking.id,
+                        description: 'Payment for ${widget.booking.service}',
                       ),
                     ),
                   );
@@ -331,7 +331,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                       Navigator.pop(context, true);
                     }
                   }
-                } else if (widget.booking['status'] == 'confirmed') {
+                } else if (widget.booking.status == BookingStatus.confirmation) {
                   // Mark as completed
                   // TODO: Update booking status in backend
                   if (mounted) {
@@ -339,7 +339,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                   }
                 }
               },
-              child: Text(widget.booking['status'] == 'pending' ? 'Pay Now' : 'Mark as Completed'),
+              child: Text(widget.booking.status == BookingStatus.pending ? 'Pay Now' : 'Mark as Completed'),
             ),
           ),
         ],
@@ -348,12 +348,12 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   }
 
   Color _getStatusColor() {
-    switch (widget.booking['status']) {
-      case 'pending':
+    switch (widget.booking.status) {
+      case BookingStatus.pending:
         return Colors.orange;
-      case 'confirmed':
+      case BookingStatus.confirmation:
         return Colors.blue;
-      case 'completed':
+      case BookingStatus.completed:
         return Colors.green;
       default:
         return Colors.grey;
@@ -361,20 +361,20 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   }
 
   String _getStatusLabel() {
-    switch (widget.booking['status']) {
-      case 'pending':
+    switch (widget.booking.status) {
+      case BookingStatus.pending:
         return 'Pending';
-      case 'confirmed':
+      case BookingStatus.confirmation:
         return 'In Progress';
-      case 'completed':
+      case BookingStatus.completed:
         return 'Completed';
       default:
-        return widget.booking['status'];
+        return widget.booking.status.toString().split('.').last;
     }
   }
 
   String _getPaymentStatus() {
     // TODO: Implement actual payment status logic
-    return widget.booking['status'] == 'completed' ? 'Paid' : 'Pending';
+    return widget.booking.status == BookingStatus.completed ? 'Paid' : 'Pending';
   }
 } 

@@ -21,7 +21,9 @@ class BookingLocation {
   factory BookingLocation.fromJson(Map<String, dynamic> json) {
     return BookingLocation(
       address: json['address'] as String,
-      coordinates: List<double>.from(json['coordinates'] as List),
+      coordinates: (json['coordinates'] as List)
+          .map((e) => (e as num).toDouble())
+          .toList(),
     );
   }
 
@@ -101,6 +103,15 @@ class Booking {
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
+    BookingUser parseUser(dynamic userJson) {
+      if (userJson is String) {
+        return BookingUser(id: userJson, name: '', email: '');
+      } else if (userJson is Map<String, dynamic>) {
+        return BookingUser.fromJson(userJson);
+      } else {
+        return BookingUser(id: '', name: '', email: '');
+      }
+    }
     return Booking(
       id: json['_id'] as String,
       service: json['service'] as String,
@@ -108,10 +119,8 @@ class Booking {
       time: json['time'] as String,
       location: BookingLocation.fromJson(json['location'] as Map<String, dynamic>),
       notes: json['notes'] as String,
-      user: BookingUser.fromJson(json['user'] as Map<String, dynamic>),
-      worker: json['worker'] != null 
-          ? BookingUser.fromJson(json['worker'] as Map<String, dynamic>)
-          : null,
+      user: parseUser(json['user']),
+      worker: json['worker'] != null ? parseUser(json['worker']) : null,
       status: BookingStatus.values.firstWhere(
         (e) => e.toString().split('.').last == json['status'],
         orElse: () => BookingStatus.pending,
