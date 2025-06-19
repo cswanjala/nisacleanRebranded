@@ -5,7 +5,7 @@ import 'package:nisacleanv1/features/worker/screens/worker_earnings_screen.dart'
 import 'package:nisacleanv1/features/worker/screens/worker_services_screen.dart';
 import 'package:nisacleanv1/features/profile/screens/profile_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:nisacleanv1/providers/auth_provider.dart';
+import 'package:nisacleanv1/features/auth/providers/auth_provider.dart';
 
 class WorkerMainScreen extends StatefulWidget {
   const WorkerMainScreen({super.key});

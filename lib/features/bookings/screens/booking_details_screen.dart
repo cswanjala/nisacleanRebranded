@@ -3,6 +3,7 @@ import 'package:nisacleanv1/features/payments/screens/payment_screen.dart';
 import 'package:nisacleanv1/features/location/screens/location_picker_screen.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:nisacleanv1/features/bookings/models/booking.dart';
+import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
   final Booking booking;
@@ -283,6 +284,95 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
 
   Widget _buildBottomBar(BuildContext context) {
     if (widget.booking.status == BookingStatus.completed) return const SizedBox.shrink();
+
+    // Show Approve/Decline Invoice if invoice is sent and not approved
+    if (widget.booking.invoiceSent == true && widget.booking.invoiceApproved != true) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (widget.booking.invoiceAmount != null) ...[
+              Text(
+                'Invoice Amount: KES ${widget.booking.invoiceAmount!.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Decline Invoice'),
+                          content: const Text('Are you sure you want to decline this invoice?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Decline'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        // TODO: Call decline invoice endpoint if available
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Invoice declined (not implemented)')),
+                        );
+                      }
+                    },
+                    child: const Text('Decline'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      try {
+                        // Call approve invoice
+                        await BookingService().approveInvoice(bookingId: widget.booking.id);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Invoice approved!')),
+                        );
+                        if (mounted) Navigator.pop(context, true); // Or refresh
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to approve invoice: $e')),
+                        );
+                      }
+                    },
+                    child: const Text('Approve'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
