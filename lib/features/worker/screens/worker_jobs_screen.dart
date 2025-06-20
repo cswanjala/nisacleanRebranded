@@ -14,7 +14,7 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
   final BookingService _bookingService = BookingService();
   bool _isLoading = false;
   String? _error;
-  List<Booking> _jobs = [];
+  List<Map<String, dynamic>> _jobs = [];
 
   @override
   void initState() {
@@ -97,7 +97,9 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
   }
 
   Widget _buildJobList(BuildContext context, BookingStatus status) {
-    final jobs = _jobs.where((job) => job.status == status).toList();
+    final jobs = status == BookingStatus.pending
+        ? _jobs.where((job) => job['status'] == 'pending' || job['status'] == 'confirmation').toList()
+        : _jobs.where((job) => job['status'] == status.name).toList();
     if (jobs.isEmpty) {
       return ListView(
         children: [
@@ -113,7 +115,7 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No \\${status.name} jobs',
+                  'No \${status.name} jobs',
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     color: Colors.grey[600],
@@ -141,7 +143,7 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      job.service,
+                      job['service'] ?? '',
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -168,23 +170,22 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                _buildInfoRow(Icons.person, job.user.name),
+                _buildInfoRow(Icons.person, job['user']?['name'] ?? ''),
                 const SizedBox(height: 8),
-                _buildInfoRow(Icons.location_on, job.location.address),
+                _buildInfoRow(Icons.location_on, job['location']?['address'] ?? ''),
                 const SizedBox(height: 8),
-                _buildInfoRow(Icons.calendar_today, job.date),
+                _buildInfoRow(Icons.calendar_today, job['date'] ?? ''),
                 const SizedBox(height: 8),
-                _buildInfoRow(Icons.access_time, job.time),
+                _buildInfoRow(Icons.access_time, job['time'] ?? ''),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      // For in-progress jobs, show invoiceAmount if present, else amount
                       'KES ' + (
-                        status == BookingStatus.inprogress && job.invoiceAmount != null
-                          ? job.invoiceAmount!.toStringAsFixed(2)
-                          : (job.amount ?? 0).toStringAsFixed(2)
+                        status == BookingStatus.inprogress && job['invoiceAmount'] != null
+                          ? (job['invoiceAmount'] as num).toStringAsFixed(2)
+                          : ((job['amount'] ?? 0) as num).toStringAsFixed(2)
                       ),
                       style: GoogleFonts.poppins(
                         fontSize: 18,
@@ -199,7 +200,7 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
                             onPressed: () {
                               _showStatusUpdateDialog(
                                 context,
-                                job.id,
+                                job['id'],
                                 'Start Job',
                                 'Are you sure you want to start this job?',
                                 'inprogress',
@@ -217,7 +218,7 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
                             onPressed: () {
                               _showStatusUpdateDialog(
                                 context,
-                                job.id,
+                                job['id'],
                                 'Complete Job',
                                 'Are you sure you want to mark this job as completed?',
                                 'completed',

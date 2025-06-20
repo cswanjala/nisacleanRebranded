@@ -277,7 +277,7 @@ class BookingService {
     required double lat,
   }) async {
     final headers = await _getHeaders();
-    final uri = Uri.parse('$baseUrl/booking/available-providers?service=$service&lng=$lng&lat=$lat');
+    final uri = Uri.parse('$baseUrl/providers/get-available-providers?service=$service&lng=$lng&lat=$lat');
     final response = await http.get(uri, headers: headers);
     final data = jsonDecode(response.body);
     if (response.statusCode == 200 && data['success'] == true) {
@@ -303,16 +303,14 @@ class BookingService {
   }
 
   // Fetch bookings for the current provider (worker)
-  Future<List<Booking>> getProviderBookings({String? date}) async {
+  Future<List<Map<String, dynamic>>> getProviderBookings() async {
     final headers = await _getHeaders();
-    final query = date != null ? '?date=$date' : '';
-    final uri = Uri.parse('${baseUrl}/booking/get-booking-by-date$query');
+    final uri = Uri.parse('$baseUrl/booking/provider-bookings');
     final response = await http.get(uri, headers: headers);
-    print('Get provider bookings response: \\${response.statusCode} - \\${response.body}');
     final data = jsonDecode(response.body);
     if (response.statusCode == 200 && data['success'] == true) {
-      final bookingsList = data['data'] as List;
-      return bookingsList.map((json) => Booking.fromJson(json)).toList();
+      final bookings = data['data'] as List;
+      return bookings.map((e) => Map<String, dynamic>.from(e)).toList();
     } else {
       throw data['message'] ?? 'Failed to fetch provider bookings';
     }
@@ -326,11 +324,11 @@ class BookingService {
     try {
       final headers = await _getHeaders();
       final response = await http.post(
-        Uri.parse('$baseUrl/booking/send-invoice'),
+        Uri.parse('$baseUrl/booking/confirm-budget'),
         headers: headers,
         body: jsonEncode({
           'bookingId': bookingId,
-          'amount': amount,
+          'budget': amount,
         }),
       );
       final data = jsonDecode(response.body);
@@ -365,6 +363,21 @@ class BookingService {
       }
     } catch (e) {
       throw e.toString();
+    }
+  }
+
+  // Fetch provider bookings by date
+  Future<List<Booking>> getProviderBookingsByDate(DateTime date) async {
+    final headers = await _getHeaders();
+    final dateString = date.toIso8601String().split('T')[0];
+    final uri = Uri.parse('$baseUrl/provider/get-booking-by-date?date=$dateString');
+    final response = await http.get(uri, headers: headers);
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200 && data['success'] == true) {
+      final bookings = data['data'] as List;
+      return bookings.map((json) => Booking.fromJson(json)).toList();
+    } else {
+      throw data['message'] ?? 'Failed to fetch provider bookings by date';
     }
   }
 } 

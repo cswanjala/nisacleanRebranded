@@ -37,9 +37,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
       _error = null;
     });
     try {
-      final jobs = await _bookingService.getProviderBookings(date: day.toIso8601String().split('T')[0]);
+      final jobs = await _bookingService.getProviderBookings();
       setState(() {
-        _jobs = jobs;
+        _jobs = jobs.map((json) => Booking.fromJson(json)).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -362,7 +362,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             statusLabel = statusStr;
         }
         return _buildScheduleItem(
-                context,
+          context,
           job.service,
           job.time,
           job.location.address,
@@ -370,8 +370,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           clientName: job.user.name,
           statusLabel: statusLabel,
           booking: job,
-                  );
-                },
+        );
+      },
     );
   }
 
@@ -388,7 +388,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     final isPending = statusLabel?.toLowerCase() == 'pending';
     final canSendInvoice = isPending && (booking?.invoiceSent != true);
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -398,13 +398,13 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+                Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
                 Row(
                   children: [
                     Icon(Icons.access_time, size: 14, color: Colors.white70),
                     const SizedBox(width: 4),
-                    Text(time, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
+                    Text(time, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -413,8 +413,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                     Icon(Icons.location_on, size: 14, color: Colors.white70),
                     const SizedBox(width: 4),
                     Expanded(
-                      child: Text(location, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
-                      ),
+                      child: Text(location, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
                   ],
                 ),
                 if (clientName != null && clientName.isNotEmpty) ...[
@@ -423,10 +423,10 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                     children: [
                       Icon(Icons.person, size: 14, color: Colors.white70),
                       const SizedBox(width: 4),
-                      Text('Client: $clientName', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
-                  ],
-                ),
-              ],
+                      Text('Client: $clientName', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ],
                 if (canSendInvoice) ...[
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
@@ -448,7 +448,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                                 child: const Text('Cancel'),
                               ),
                               ElevatedButton(
-            onPressed: () {
+                                onPressed: () {
                                   final value = double.tryParse(controller.text);
                                   if (value != null && value > 0) {
                                     Navigator.pop(ctx, value);
@@ -488,15 +488,19 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              statusLabel ?? '',
-              style: GoogleFonts.poppins(color: color, fontSize: 12, fontWeight: FontWeight.w500),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                statusLabel ?? '',
+                style: GoogleFonts.poppins(color: color, fontSize: 12, fontWeight: FontWeight.w500),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ],

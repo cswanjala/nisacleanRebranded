@@ -31,7 +31,18 @@ class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectio
   Future<void> _fetchProviders() async {
     setState(() { _isLoading = true; });
     try {
-      final providers = await _bookingService.getAllAvailableProviders();
+      final details = widget.bookingDetails;
+      // Ensure coordinates are present and valid
+      final coords = details['coordinates'] ?? [0.0, 0.0];
+      final service = details['service'];
+      if (service == null || coords.length != 2) {
+        throw 'Missing service or coordinates for provider search.';
+      }
+      final providers = await _bookingService.getAvailableProviders(
+        service: service,
+        lng: coords[0],
+        lat: coords[1],
+      );
       setState(() {
         _providers = providers;
       });
