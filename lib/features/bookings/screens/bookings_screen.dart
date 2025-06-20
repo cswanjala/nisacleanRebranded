@@ -66,6 +66,12 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   }
 
   List<Booking> _getFilteredBookings(String status) {
+    if (status == 'pending') {
+      return _bookings.where((booking) {
+        final s = booking.status.toString().split('.').last;
+        return s == 'pending' || s == 'confirmation';
+      }).toList();
+    }
     return _bookings.where((booking) => booking.status.toString().split('.').last == status).toList();
   }
 
@@ -185,6 +191,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       itemCount: filteredBookings.length,
       itemBuilder: (context, index) {
         final booking = filteredBookings[index];
+        final statusStr = booking.status.toString().split('.').last;
         return Card(
           margin: const EdgeInsets.only(bottom: 16),
           child: InkWell(
@@ -213,7 +220,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                           fontSize: 16,
                         ),
                       ),
-                      _buildStatusChip(booking.status.toString().split('.').last),
+                      _buildStatusChip(statusStr),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -252,6 +259,31 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                       const Icon(Icons.arrow_forward_ios, size: 16),
                     ],
                   ),
+                  if (statusStr == 'confirmation' && booking.invoiceAmount != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12.0),
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.payment),
+                        label: Text('Pay Now (KES ${booking.invoiceAmount!.toStringAsFixed(2)})'),
+                        onPressed: () async {
+                          try {
+                            await _bookingService.approveInvoice(bookingId: booking.id);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Payment successful!')),
+                            );
+                            _loadBookings();
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Payment failed: $e')),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
