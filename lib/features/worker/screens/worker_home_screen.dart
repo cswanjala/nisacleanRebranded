@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
 import 'package:nisacleanv1/features/bookings/models/booking.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nisacleanv1/core/bloc/auth/auth_bloc.dart';
+import 'package:nisacleanv1/core/bloc/auth/auth_state.dart';
 
 class WorkerHomeScreen extends StatefulWidget {
   const WorkerHomeScreen({super.key});
@@ -97,12 +100,17 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             pinned: true,
             backgroundColor: const Color(0xFF1A1A1A),
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                'Welcome Back, John!',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+              title: BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  final name = state.name ?? 'User';
+                  return Text(
+                    'Welcome Back, $name!',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  );
+                },
               ),
               background: Container(
                 decoration: BoxDecoration(
@@ -354,7 +362,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             statusLabel = statusStr;
         }
         return _buildScheduleItem(
-          context,
+                context,
           job.service,
           job.time,
           job.location.address,
@@ -362,8 +370,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           clientName: job.user.name,
           statusLabel: statusLabel,
           booking: job,
-        );
-      },
+                  );
+                },
     );
   }
 
@@ -406,7 +414,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(location, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
-                    ),
+                      ),
                   ],
                 ),
                 if (clientName != null && clientName.isNotEmpty) ...[
@@ -416,9 +424,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                       Icon(Icons.person, size: 14, color: Colors.white70),
                       const SizedBox(width: 4),
                       Text('Client: $clientName', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
+              ],
                 if (canSendInvoice) ...[
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
@@ -440,7 +448,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                                 child: const Text('Cancel'),
                               ),
                               ElevatedButton(
-                                onPressed: () {
+            onPressed: () {
                                   final value = double.tryParse(controller.text);
                                   if (value != null && value > 0) {
                                     Navigator.pop(ctx, value);

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/bloc/auth/auth_bloc.dart';
+import '../../../../core/bloc/auth/auth_event.dart';
+import '../../../../core/bloc/auth/auth_state.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String initialName;
@@ -42,16 +46,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _saveProfile() {
-    // In a real app, save to backend or state management
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated!'), backgroundColor: Colors.green),
-    );
-    Navigator.pop(context, {
-      'name': _nameController.text,
-      'email': _emailController.text,
-      'phone': _phoneController.text,
-      'photoUrl': _photoUrl,
-    });
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final bloc = context.read<AuthBloc>();
+    bloc.add(UpdateProfileRequested(name: name, email: email, phone: phone));
   }
 
   void _pickPhoto() async {
@@ -66,62 +65,85 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Edit Profile',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (!state.isLoading && state.error == null) {
+          // Success: pop and return updated info
+          Navigator.pop(context, {
+            'name': state.name,
+            'email': state.email,
+            'phone': _phoneController.text.trim(),
+            'photoUrl': _photoUrl,
+          });
+        } else if (state.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.error!), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Edit Profile',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          ),
         ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            GestureDetector(
-              onTap: _pickPhoto,
-              child: CircleAvatar(
-                radius: 48,
-                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
-                child: _photoUrl == null
-                    ? Icon(Icons.person, size: 48, color: Theme.of(context).colorScheme.primary)
-                    : null,
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: _pickPhoto,
+                child: CircleAvatar(
+                  radius: 48,
+                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
+                  child: _photoUrl == null
+                      ? Icon(Icons.person, size: 48, color: Theme.of(context).colorScheme.primary)
+                      : null,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.emailAddress,
               ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _phoneController,
-              decoration: const InputDecoration(
-                labelText: 'Phone',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.phone,
               ),
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: _saveProfile,
-              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-              child: const Text('Save Changes'),
-            ),
-          ],
+              const SizedBox(height: 32),
+              BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  return ElevatedButton(
+                    onPressed: state.isLoading ? null : _saveProfile,
+                    style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                    child: state.isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Save Changes'),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

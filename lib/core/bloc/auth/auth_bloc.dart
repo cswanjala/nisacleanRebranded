@@ -11,6 +11,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<RegisterRequested>(_onRegisterRequested);
     on<LogoutRequested>(_onLogoutRequested);
     on<CheckAuthStatus>(_onCheckAuthStatus);
+    on<UpdateProfileRequested>(_onUpdateProfileRequested);
+    on<FetchProfileRequested>(_onFetchProfileRequested);
   }
 
   void _onLoginRequested(
@@ -28,12 +30,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         userType = UserType.serviceProvider;
       }
       
+      // Fetch real user profile after login
+      final profile = await _authService.fetchUserProfile();
+      print('Fetched user profile: ' + profile.toString());
       emit(state.copyWith(
         isAuthenticated: true,
         isLoading: false,
         userType: userType,
-        name: result['name'] ?? 'User',
-        email: event.email,
+        name: profile['name'] ?? 'User',
+        email: profile['email'] ?? event.email,
+        phone: profile['phone'] ?? '',
         token: result['token'],
       ));
     } catch (e) {
@@ -110,11 +116,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           userType = UserType.serviceProvider;
         }
         
+        // Fetch real user profile
+        final profile = await _authService.fetchUserProfile();
+        print('Fetched user profile: ' + profile.toString());
         emit(state.copyWith(
           isAuthenticated: true,
           userType: userType,
-          name: user?['name'] ?? 'User',
-          email: user?['email'] ?? '',
+          name: profile['name'] ?? 'User',
+          email: profile['email'] ?? '',
+          phone: profile['phone'] ?? '',
           token: token,
         ));
       } else {
@@ -122,6 +132,54 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     } catch (e) {
       emit(const AuthState());
+    }
+  }
+
+  void _onUpdateProfileRequested(
+    UpdateProfileRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(state.copyWith(isLoading: true, error: null));
+    try {
+      await _authService.updateUserProfile(
+        name: event.name,
+        email: event.email,
+        phone: event.phone,
+      );
+      // Fetch updated profile
+      final profile = await _authService.fetchUserProfile();
+      emit(state.copyWith(
+        isLoading: false,
+        name: profile['name'] ?? state.name,
+        email: profile['email'] ?? state.email,
+        phone: profile['phone'] ?? state.phone,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      ));
+    }
+  }
+
+  void _onFetchProfileRequested(
+    FetchProfileRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(state.copyWith(isLoading: true, error: null));
+    try {
+      final profile = await _authService.fetchUserProfile();
+      emit(state.copyWith(
+        isLoading: false,
+        name: profile['name'] ?? state.name,
+        email: profile['email'] ?? state.email,
+        phone: profile['phone'] ?? state.phone,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      ));
     }
   }
 } 

@@ -180,7 +180,12 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'KES \\${(job.amount ?? 0).toStringAsFixed(2)}',
+                      // For in-progress jobs, show invoiceAmount if present, else amount
+                      'KES ' + (
+                        status == BookingStatus.inprogress && job.invoiceAmount != null
+                          ? job.invoiceAmount!.toStringAsFixed(2)
+                          : (job.amount ?? 0).toStringAsFixed(2)
+                      ),
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

@@ -9,6 +9,8 @@ import 'package:nisacleanv1/features/wallet/screens/wallet_screen.dart';
 import 'package:nisacleanv1/features/profile/screens/profile_screen.dart';
 import 'package:nisacleanv1/features/auth/screens/login_screen.dart';
 import 'package:nisacleanv1/features/worker/screens/worker_main_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nisacleanv1/core/bloc/auth/auth_bloc.dart';
 
 void main() {
   runApp(const MyApp());
@@ -23,17 +25,20 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
-      child: MaterialApp(
-        title: 'NisaClean',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        home: const LoginScreen(),
-        routes: {
-          '/login': (context) => const LoginScreen(),
-          '/home': (context) => const MainScreen(),
-          '/worker-home': (context) => const WorkerMainScreen(),
-        },
+      child: BlocProvider(
+        create: (_) => AuthBloc(),
+        child: MaterialApp(
+          title: 'NisaClean',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeMode.system,
+          home: const LoginScreen(),
+          routes: {
+            '/login': (context) => const LoginScreen(),
+            '/home': (context) => const MainScreen(),
+            '/worker-home': (context) => const WorkerMainScreen(),
+          },
+        ),
       ),
     );
   }

@@ -101,16 +101,16 @@ class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectio
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSelectionOption(),
-                  const SizedBox(height: 24),
-                  if (!_autoAssign) _buildServiceProviderList(),
-                ],
-              ),
-            ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSelectionOption(),
+            const SizedBox(height: 24),
+            if (!_autoAssign) _buildServiceProviderList(),
+          ],
+        ),
+      ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16),
         child: ElevatedButton(

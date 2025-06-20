@@ -227,4 +227,97 @@ class AuthService {
     final token = await getToken();
     return token != null;
   }
+
+  // Fetch user profile
+  Future<Map<String, dynamic>> fetchUserProfile() async {
+    try {
+      final token = await getToken();
+      if (token == null) throw 'Not authenticated';
+      final url = '$baseUrl/users/me';
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      print('Fetching user profile: $url'); // DEBUG
+      print('Request headers: ' + headers.toString()); // DEBUG
+      final response = await http.get(
+        Uri.parse(url),
+        headers: headers,
+      );
+      print('Profile Response Status: ${response.statusCode}'); // DEBUG
+      print('Profile Response Body: ${response.body}'); // DEBUG
+      final data = jsonDecode(response.body);
+      
+      if (response.statusCode == 200 && data['data'] != null) {
+        return data['data'];
+      } else {
+        throw data['message'] ?? 'Failed to fetch user profile';
+      }
+    } catch (e) {
+      print('Profile Fetch Error: $e'); // DEBUG
+      throw e.toString();
+    }
+  }
+
+  // Update user profile
+  Future<Map<String, dynamic>> updateUserProfile({
+    String? name,
+    String? email,
+    String? phone,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) throw 'Not authenticated';
+      final body = <String, dynamic>{};
+      if (name != null) body['name'] = name;
+      if (email != null) body['email'] = email;
+      if (phone != null) body['phone'] = phone;
+      final response = await http.put(
+        Uri.parse('$baseUrl/users/updateMe'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['data'] != null) {
+        return data['data'];
+      } else {
+        throw data['message'] ?? 'Failed to update profile';
+      }
+    } catch (e) {
+      throw e.toString();
+    }
+  }
+
+  // Fetch current provider profile
+  Future<Map<String, dynamic>> fetchCurrentProviderProfile() async {
+    try {
+      final token = await getToken();
+      if (token == null) throw 'Not authenticated';
+      final url = '$baseUrl/products/get-current-provider';
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      print('Fetching provider profile: $url'); // DEBUG
+      print('Request headers: ' + headers.toString()); // DEBUG
+      final response = await http.get(
+        Uri.parse(url),
+        headers: headers,
+      );
+      print('Provider Profile Response Status: \\${response.statusCode}'); // DEBUG
+      print('Provider Profile Response Body: \\${response.body}'); // DEBUG
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['data'] != null) {
+        return data['data'];
+      } else {
+        throw data['message'] ?? 'Failed to fetch provider profile';
+      }
+    } catch (e) {
+      print('Provider Profile Fetch Error: $e'); // DEBUG
+      throw e.toString();
+    }
+  }
 } 

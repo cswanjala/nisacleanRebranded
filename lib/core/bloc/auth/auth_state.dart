@@ -8,6 +8,7 @@ class AuthState extends Equatable {
   final UserType? userType;
   final String? name;
   final String? email;
+  final String? phone;
   final String? token;
   final String? error;
 
@@ -17,6 +18,7 @@ class AuthState extends Equatable {
     this.userType,
     this.name,
     this.email,
+    this.phone,
     this.token,
     this.error,
   });
@@ -27,6 +29,7 @@ class AuthState extends Equatable {
     UserType? userType,
     String? name,
     String? email,
+    String? phone,
     String? token,
     String? error,
   }) {
@@ -36,11 +39,12 @@ class AuthState extends Equatable {
       userType: userType ?? this.userType,
       name: name ?? this.name,
       email: email ?? this.email,
+      phone: phone ?? this.phone,
       token: token ?? this.token,
       error: error ?? this.error,
     );
   }
 
   @override
-  List<Object?> get props => [isAuthenticated, isLoading, userType, name, email, token, error];
+  List<Object?> get props => [isAuthenticated, isLoading, userType, name, email, phone, token, error];
 } 
