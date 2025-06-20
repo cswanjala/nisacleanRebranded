@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:nisacleanv1/features/wallet/widgets/balance_card.dart';
 import 'package:nisacleanv1/features/wallet/widgets/transaction_card.dart';
 import 'package:nisacleanv1/features/wallet/widgets/action_button_card.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../services/wallet_service.dart';
+import 'package:nisacleanv1/services/auth_service.dart';
+import '../models/transaction.dart';
+import 'package:intl/intl.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -13,11 +19,92 @@ class WalletScreen extends StatefulWidget {
 class _WalletScreenState extends State<WalletScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  double? _balance;
+  bool _isBalanceLoading = true;
+  String? _balanceError;
+
+  List<Map<String, dynamic>> _transactions = [];
+  bool _isTxLoading = true;
+  String? _txError;
+
+  String? _phoneNumber;
+  bool _isProfileLoading = true;
+  String? _profileError;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _fetchProfile();
+    _fetchBalance();
+    _fetchTransactions();
+  }
+
+  Future<void> _fetchProfile() async {
+    setState(() {
+      _isProfileLoading = true;
+      _profileError = null;
+    });
+    try {
+      final user = await AuthService().fetchUserProfile();
+      if (!mounted) return;
+      setState(() {
+        _phoneNumber = user['phone'] ?? '';
+        _isProfileLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _profileError = e.toString();
+        _isProfileLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchBalance() async {
+    setState(() {
+      _isBalanceLoading = true;
+      _balanceError = null;
+    });
+    try {
+      final token = await AuthService().getToken();
+      if (token == null) throw 'Not authenticated';
+      final balance = await WalletService().getBalance(token);
+      if (!mounted) return;
+      setState(() {
+        _balance = balance;
+        _isBalanceLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _balanceError = e.toString();
+        _isBalanceLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchTransactions() async {
+    setState(() {
+      _isTxLoading = true;
+      _txError = null;
+    });
+    try {
+      final token = await AuthService().getToken();
+      if (token == null) throw 'Not authenticated';
+      final txs = await WalletService().getTransactions(token);
+      if (!mounted) return;
+      setState(() {
+        _transactions = txs;
+        _isTxLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _txError = e.toString();
+        _isTxLoading = false;
+      });
+    }
   }
 
   @override
@@ -60,11 +147,21 @@ class _WalletScreenState extends State<WalletScreen>
               const SizedBox(height: 12),
 
               /// Balance Card
-              const BalanceCard(
-                balance: 20918.52,
-                phoneNumber: '0796247784',
-                paymentMethod: 'Mpesa',
-              ),
+              if (_isBalanceLoading || _isProfileLoading)
+                const Center(child: CircularProgressIndicator())
+              else if (_balanceError != null || _profileError != null)
+                Center(
+                  child: Text(
+                    _balanceError ?? _profileError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                )
+              else
+                BalanceCard(
+                  balance: _balance ?? 0.0,
+                  phoneNumber: _phoneNumber ?? '-',
+                  paymentMethod: 'Mpesa',
+                ),
               const SizedBox(height: 16),
 
               /// Action Buttons
@@ -129,16 +226,24 @@ class _WalletScreenState extends State<WalletScreen>
   }
 
   Widget _buildTransactionsTab() {
+    if (_isTxLoading) {
+      return const Center(child: CircularProgressIndicator());
+    } else if (_txError != null) {
+      return Center(child: Text(_txError!, style: TextStyle(color: Colors.red)));
+    } else if (_transactions.isEmpty) {
+      return Center(child: Text('No transactions found.', style: TextStyle(color: Colors.white70)));
+    }
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      itemCount: 10,
+      itemCount: _transactions.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
+        final tx = _transactions[index];
         return TransactionCard(
-          title: index % 2 == 0 ? 'Deposit' : 'Withdrawal',
-          amount: index % 2 == 0 ? 490.0 : -300.0,
-          date: '2025-06-${index + 1}',
-          status: 'completed',
+          title: tx['type'] == 'deposit' ? 'Deposit' : 'Withdrawal',
+          amount: (tx['amount'] as num).toDouble(),
+          date: tx['createdAt'] != null ? tx['createdAt'].toString().split('T').first : '',
+          status: tx['status']?.toString().split('.').last ?? '-',
         );
       },
     );

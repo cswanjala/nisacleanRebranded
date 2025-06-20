@@ -244,11 +244,15 @@ class AuthService {
         Uri.parse(url),
         headers: headers,
       );
-      print('Profile Response Status: ${response.statusCode}'); // DEBUG
-      print('Profile Response Body: ${response.body}'); // DEBUG
+      print('Profile Response Status: \\${response.statusCode}'); // DEBUG
+      print('Profile Response Body: \\${response.body}'); // DEBUG
       final data = jsonDecode(response.body);
-      
-      if (response.statusCode == 200 && data['data'] != null) {
+
+      // If the response is the user object directly, just return it
+      if (response.statusCode == 200 && data['_id'] != null) {
+        return data;
+      } else if (response.statusCode == 200 && data['data'] != null) {
+        // fallback for old format
         return data['data'];
       } else {
         throw data['message'] ?? 'Failed to fetch user profile';

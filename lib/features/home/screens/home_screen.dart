@@ -24,14 +24,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchRecentBookings() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final bookings = await _bookingService.getBookings(limit: 3);
+      if (!mounted) return;
       setState(() {
         _recentBookings = bookings;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _recentBookings = [];
         _isLoading = false;
