@@ -4,6 +4,8 @@ import 'package:nisacleanv1/features/location/screens/location_picker_screen.dar
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:nisacleanv1/features/bookings/models/booking.dart';
 import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
   final Booking booking;
@@ -20,9 +22,20 @@ class BookingDetailsScreen extends StatefulWidget {
 class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   @override
   Widget build(BuildContext context) {
+    final location = widget.booking.location.coordinates;
+    final address = widget.booking.location.address;
+    final lat = location.length == 2 ? location[1] : null;
+    final lng = location.length == 2 ? location[0] : null;
+    final amount = widget.booking.amount ?? 0.0;
+    final formattedAmount = NumberFormat('#,##0.00', 'en_US').format(amount);
+    final status = widget.booking.status.toString().split('.').last;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.booking.id),
+        title: Text('Booking Details', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onBackground),
         actions: [
           if (widget.booking.status == BookingStatus.pending)
             IconButton(
@@ -54,54 +67,76 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildStatusCard(),
-          const SizedBox(height: 16),
-          _buildServiceDetailsCard(),
-          const SizedBox(height: 16),
-          _buildScheduleCard(),
-          const SizedBox(height: 16),
-          _buildPaymentCard(),
-          if (widget.booking.notes.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildNotesCard(),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          children: [
+            _buildStatusBanner(context, status),
+            const SizedBox(height: 18),
+            _buildServiceCard(context),
+            const SizedBox(height: 18),
+            _buildProviderCard(context),
+            const SizedBox(height: 18),
+            _buildLocationCard(context, address, lat, lng),
+            const SizedBox(height: 18),
+            _buildScheduleCard(context),
+            const SizedBox(height: 18),
+            _buildPaymentCard(context, formattedAmount),
+            if (widget.booking.notes.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              _buildNotesCard(context),
+            ],
+            const SizedBox(height: 80), // For sticky action area
           ],
-        ],
+        ),
       ),
-      bottomNavigationBar: _buildBottomBar(context),
+      bottomNavigationBar: _buildActionBar(context, status),
     );
   }
 
-  Widget _buildStatusCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Status',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
+  Widget _buildStatusBanner(BuildContext context, String status) {
+    final color = _getStatusColor(status);
+    final label = _getStatusLabel(status);
+    final icon = _getStatusIcon(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: _getStatusColor().withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServiceCard(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 3,
+      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF23262F) : Theme.of(context).cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            const Icon(Icons.cleaning_services, color: Colors.blue, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
               child: Text(
-                _getStatusLabel(),
-                style: TextStyle(
-                  color: _getStatusColor(),
-                  fontWeight: FontWeight.w500,
-                ),
+                widget.booking.service,
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 17),
               ),
             ),
           ],
@@ -110,76 +145,39 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     );
   }
 
-  Widget _buildServiceDetailsCard() {
+  Widget _buildProviderCard(BuildContext context) {
+    final provider = widget.booking.worker;
+    final providerName = provider?.name ?? 'N/A';
+    final providerAvatar = null; // No avatar in BookingUser model
+    final providerRating = null; // No rating in BookingUser model
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 3,
+      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF23262F) : Theme.of(context).cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(20),
+        child: Row(
           children: [
-            const Text(
-              'Service Details',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
+            CircleAvatar(
+              backgroundColor: Colors.blueGrey[100],
+              backgroundImage: providerAvatar != null ? NetworkImage(providerAvatar) : null,
+              child: providerAvatar == null ? const Icon(Icons.person, color: Colors.grey) : null,
+              radius: 22,
             ),
-            const SizedBox(height: 16),
-            _buildInfoRow('Service', widget.booking.service),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: () async {
-                final location = await Navigator.push<LatLng>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => LocationPickerScreen(
-                      initialLocation: widget.booking.location.coordinates.length == 2
-                          ? LatLng(
-                              widget.booking.location.coordinates[1],
-                              widget.booking.location.coordinates[0],
-                            )
-                          : null,
-                    ),
-                  ),
-                );
-
-                if (location != null) {
-                  // TODO: Update location in backend
-                  setState(() {
-                    // This is just for UI update; backend update needed for real change
-                    widget.booking.location.coordinates[0] = location.longitude;
-                    widget.booking.location.coordinates[1] = location.latitude;
-                  });
-                }
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Location',
-                    style: TextStyle(
-                      color: Colors.grey,
+                  Text(providerName, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15)),
+                  if (providerRating != null)
+                    Row(
+                      children: [
+                        Icon(Icons.star, color: Colors.amber[700], size: 16),
+                        const SizedBox(width: 4),
+                        Text(providerRating.toString(), style: GoogleFonts.poppins(fontSize: 13)),
+                      ],
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        widget.booking.location.coordinates.length == 2
-                            ? '${widget.booking.location.coordinates[1].toStringAsFixed(4)}, ${widget.booking.location.coordinates[0].toStringAsFixed(4)}'
-                            : 'Not specified',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.edit_location_alt,
-                        size: 20,
-                        color: Colors.blue,
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -189,282 +187,247 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     );
   }
 
-  Widget _buildScheduleCard() {
+  Widget _buildLocationCard(BuildContext context, String address, dynamic lat, dynamic lng) {
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 3,
+      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF23262F) : Theme.of(context).cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+        padding: const EdgeInsets.all(20),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Schedule',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
+            const Icon(Icons.location_on, color: Colors.redAccent, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(address, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15)),
+                  if (lat != null && lng != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        'Lat: ${lat.toStringAsFixed(5)}, Lng: ${lng.toStringAsFixed(5)}',
+                        style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
+                      ),
+                    ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            _buildInfoRow('Date', widget.booking.date),
-            const SizedBox(height: 8),
-            _buildInfoRow('Time', widget.booking.time),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPaymentCard() {
+  Widget _buildScheduleCard(BuildContext context) {
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 3,
+      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF23262F) : Theme.of(context).cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(20),
+        child: Row(
           children: [
-            const Text(
-              'Payment',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
+            const Icon(Icons.calendar_today, color: Colors.deepPurple, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              widget.booking.date,
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15),
             ),
-            const SizedBox(height: 16),
-            _buildInfoRow('Amount', 'KES ${widget.booking.amount?.toStringAsFixed(2) ?? '0.00'}'),
-            const SizedBox(height: 8),
-            _buildInfoRow('Payment Status', _getPaymentStatus()),
+            const SizedBox(width: 16),
+            const Icon(Icons.access_time, color: Colors.deepPurple, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              widget.booking.time,
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNotesCard() {
+  Widget _buildPaymentCard(BuildContext context, String formattedAmount) {
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 3,
+      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF23262F) : Theme.of(context).cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(20),
+        child: Row(
           children: [
-            const Text(
-              'Notes',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
+            const Icon(Icons.payments, color: Colors.green, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              'KES $formattedAmount',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.green),
             ),
-            const SizedBox(height: 16),
-            Text(widget.booking.notes),
+            const Spacer(),
+            Text(
+              _getPaymentStatus(),
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.grey),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.grey,
+  Widget _buildNotesCard(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 3,
+      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF23262F) : Theme.of(context).cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.sticky_note_2, color: Colors.orange, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                widget.booking.notes,
+                style: GoogleFonts.poppins(fontSize: 15),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionBar(BuildContext context, String status) {
+    if (status == 'pending') {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(vertical: 16),
           ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomBar(BuildContext context) {
-    if (widget.booking.status == BookingStatus.completed) return const SizedBox.shrink();
-
-    // Show Approve/Decline Invoice if invoice is sent and not approved
-    if (widget.booking.invoiceSent == true && widget.booking.invoiceApproved != true) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (widget.booking.invoiceAmount != null) ...[
-              Text(
-                'Invoice Amount: KES ${widget.booking.invoiceAmount!.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PaymentScreen(
+                  amount: widget.booking.amount ?? 0.0,
+                  reference: widget.booking.id,
+                  description: 'Payment for ${widget.booking.service}',
                 ),
-                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
-            ],
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Decline Invoice'),
-                          content: const Text('Are you sure you want to decline this invoice?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Decline'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirm == true) {
-                        // TODO: Call decline invoice endpoint if available
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Invoice declined (not implemented)')),
-                        );
-                      }
-                    },
-                    child: const Text('Decline'),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      try {
-                        // Call approve invoice
-                        await BookingService().approveInvoice(bookingId: widget.booking.id);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Invoice approved!')),
-                        );
-                        if (mounted) Navigator.pop(context, true); // Or refresh
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to approve invoice: $e')),
-                        );
-                      }
-                    },
-                    child: const Text('Approve'),
-                  ),
-                ),
-              ],
-            ),
-          ],
+            );
+
+            if (result == true) {
+              // Payment successful, update booking status
+              // TODO: Update booking status in backend
+              if (mounted) {
+                Navigator.pop(context, true);
+              }
+            }
+          },
+          child: Text('Pay Now', style: GoogleFonts.poppins(fontSize: 16)),
+        ),
+      );
+    } else if (status == 'completed') {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.amber[700],
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          onPressed: () {
+            // TODO: Implement rating logic
+          },
+          child: Text('Rate Service', style: GoogleFonts.poppins(fontSize: 16)),
         ),
       );
     }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          if (widget.booking.status == BookingStatus.pending) ...[
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {
-                  // TODO: Implement reschedule
-                },
-                child: const Text('Reschedule'),
-              ),
-            ),
-            const SizedBox(width: 16),
-          ],
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () async {
-                if (widget.booking.status == BookingStatus.pending) {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PaymentScreen(
-                        amount: widget.booking.amount ?? 0.0,
-                        reference: widget.booking.id,
-                        description: 'Payment for ${widget.booking.service}',
-                      ),
-                    ),
-                  );
-
-                  if (result == true) {
-                    // Payment successful, update booking status
-                    // TODO: Update booking status in backend
-                    if (mounted) {
-                      Navigator.pop(context, true);
-                    }
-                  }
-                } else if (widget.booking.status == BookingStatus.confirmation) {
-                  // Mark as completed
-                  // TODO: Update booking status in backend
-                  if (mounted) {
-                    Navigator.pop(context, true);
-                  }
-                }
-              },
-              child: Text(widget.booking.status == BookingStatus.pending ? 'Pay Now' : 'Mark as Completed'),
-            ),
-          ),
-        ],
-      ),
-    );
+    // Add more actions as needed
+    return const SizedBox.shrink();
   }
 
-  Color _getStatusColor() {
-    switch (widget.booking.status) {
-      case BookingStatus.pending:
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'pending':
         return Colors.orange;
-      case BookingStatus.confirmation:
+      case 'confirmation':
+        return Colors.amber;
+      case 'inprogress':
         return Colors.blue;
-      case BookingStatus.completed:
+      case 'completed':
         return Colors.green;
-      default:
+      case 'cancelled':
+        return Colors.red;
+      case 'disputed':
+        return Colors.deepOrange;
+      case 'resolved':
+        return Colors.teal;
+      case 'closed':
         return Colors.grey;
+      default:
+        return Colors.orange;
     }
   }
 
-  String _getStatusLabel() {
-    switch (widget.booking.status) {
-      case BookingStatus.pending:
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'pending':
         return 'Pending';
-      case BookingStatus.confirmation:
+      case 'confirmation':
+        return 'Awaiting Confirmation';
+      case 'inprogress':
         return 'In Progress';
-      case BookingStatus.completed:
+      case 'completed':
         return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'disputed':
+        return 'Disputed';
+      case 'resolved':
+        return 'Resolved';
+      case 'closed':
+        return 'Closed';
       default:
-        return widget.booking.status.toString().split('.').last;
+        return 'Pending';
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'pending':
+        return Icons.hourglass_empty;
+      case 'confirmation':
+        return Icons.hourglass_top;
+      case 'inprogress':
+        return Icons.work_outline;
+      case 'completed':
+        return Icons.check_circle_outline;
+      case 'cancelled':
+        return Icons.cancel_outlined;
+      case 'disputed':
+        return Icons.report_problem_outlined;
+      case 'resolved':
+        return Icons.verified_user_outlined;
+      case 'closed':
+        return Icons.lock_outline;
+      default:
+        return Icons.hourglass_empty;
     }
   }
 
   String _getPaymentStatus() {
-    // TODO: Implement actual payment status logic
-    return widget.booking.status == BookingStatus.completed ? 'Paid' : 'Pending';
+    final status = widget.booking.status.toString().split('.').last;
+    if (status == 'completed') return 'Paid';
+    if (status == 'pending' || status == 'confirmation') return 'Awaiting Payment';
+    if (status == 'inprogress') return 'In Progress';
+    return 'N/A';
   }
 } 

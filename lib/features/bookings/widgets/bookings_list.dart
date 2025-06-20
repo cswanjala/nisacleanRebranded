@@ -85,11 +85,12 @@ class BookingsList extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
+        initialChildSize: 0.5,
         minChildSize: 0.5,
-        maxChildSize: 0.95,
+        maxChildSize: 0.5,
         builder: (context, scrollController) => BookingDetailsSheet(
           booking: booking,
+          scrollController: scrollController,
         ),
       ),
     );
