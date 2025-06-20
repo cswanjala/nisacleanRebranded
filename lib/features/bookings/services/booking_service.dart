@@ -306,8 +306,9 @@ class BookingService {
   Future<List<Booking>> getProviderBookings({String? date}) async {
     final headers = await _getHeaders();
     final query = date != null ? '?date=$date' : '';
-    final uri = Uri.parse('${baseUrl}/booking/provider-bookings$query');
+    final uri = Uri.parse('${baseUrl}/booking/get-booking-by-date$query');
     final response = await http.get(uri, headers: headers);
+    print('Get provider bookings response: \\${response.statusCode} - \\${response.body}');
     final data = jsonDecode(response.body);
     if (response.statusCode == 200 && data['success'] == true) {
       final bookingsList = data['data'] as List;
