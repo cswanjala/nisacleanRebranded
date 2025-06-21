@@ -33,21 +33,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       // Fetch real user profile after login
       final profile = await _authService.fetchUserProfile();
       print('Fetched user profile: ' + profile.toString());
-      emit(state.copyWith(
-        isAuthenticated: true,
+        emit(state.copyWith(
+          isAuthenticated: true,
         isLoading: false,
         userType: userType,
         name: profile['name'] ?? 'User',
         email: profile['email'] ?? event.email,
         phone: profile['phone'] ?? '',
         token: result['token'],
-      ));
+        ));
     } catch (e) {
-      emit(state.copyWith(
-        isAuthenticated: false,
+        emit(state.copyWith(
+          isAuthenticated: false,
         isLoading: false,
         error: e.toString(),
-      ));
+        ));
     }
   }
 
@@ -131,7 +131,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(const AuthState());
       }
     } catch (e) {
-      emit(const AuthState());
+    emit(const AuthState());
     }
   }
 

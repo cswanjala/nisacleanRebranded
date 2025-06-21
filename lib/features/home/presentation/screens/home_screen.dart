@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:nisacleanv1/core/constants/api_constants.dart';
 import '../../../../core/bloc/auth/auth_bloc.dart';
 import '../../../../core/bloc/auth/auth_event.dart';
 import '../../../../core/bloc/auth/auth_state.dart';
@@ -12,6 +13,9 @@ import 'settings_screen.dart';
 import 'help_support_screen.dart';
 import 'service_search_screen.dart';
 import 'my_bookings_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -84,6 +88,50 @@ class _HomeScreenState extends State<HomeScreen> {
   // Local variables to hold profile info
   String? _localName;
   String? _localEmail;
+  List<Map<String, dynamic>> _activities = [];
+  bool _isActivitiesLoading = false;
+  String? _activitiesError;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchActivities();
+  }
+
+  Future<void> _fetchActivities() async {
+    setState(() {
+      _isActivitiesLoading = true;
+      _activitiesError = null;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/activity/get-activities'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        setState(() {
+          _activities = List<Map<String, dynamic>>.from(data['data'] ?? []);
+          _isActivitiesLoading = false;
+        });
+      } else {
+        setState(() {
+          _activitiesError = data['message'] ?? 'Failed to fetch activities';
+          _isActivitiesLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _activitiesError = e.toString();
+        _isActivitiesLoading = false;
+      });
+    }
+  }
 
   void _showNotificationSheet() {
     showModalBottomSheet(
@@ -784,6 +832,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               )),
         const SizedBox(height: 24),
+        _buildSectionTitle('Recent Activity'),
+        const SizedBox(height: 16),
+        _buildRecentActivitySection(),
+        const SizedBox(height: 24),
         _buildSectionTitle('Quick Actions'),
         const SizedBox(height: 16),
         _buildProviderQuickActions(state),
@@ -1232,6 +1284,66 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentActivitySection() {
+    if (_isActivitiesLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_activitiesError != null) {
+      return Center(
+        child: Text(
+          _activitiesError!,
+          style: GoogleFonts.poppins(color: Colors.red),
+        ),
+      );
+    }
+    if (_activities.isEmpty) {
+      return _buildEmptyState('No recent activity', Icons.history_outlined);
+    }
+    return Column(
+      children: _activities.take(5).map((activity) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _ActivityCard(activity: activity),
+      )).toList(),
+    );
+  }
+}
+
+class _ActivityCard extends StatelessWidget {
+  final Map<String, dynamic> activity;
+  const _ActivityCard({required this.activity});
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final timestamp = activity['timestamp'] != null
+        ? DateTime.tryParse(activity['timestamp'])
+        : null;
+    final formattedTime = timestamp != null
+        ? TimeOfDay.fromDateTime(timestamp).format(context)
+        : '';
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: colorScheme.primary.withOpacity(0.1),
+          child: Icon(Icons.flash_on, color: colorScheme.primary),
+        ),
+        title: Text(
+          activity['type'] ?? 'Activity',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          activity['description'] ?? '',
+          style: GoogleFonts.poppins(),
+        ),
+        trailing: Text(
+          formattedTime,
+          style: GoogleFonts.poppins(fontSize: 12, color: colorScheme.primary),
         ),
       ),
     );

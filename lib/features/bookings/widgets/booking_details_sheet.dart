@@ -38,39 +38,39 @@ class BookingDetailsSheet extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
             // Drag handle
-            Container(
+          Container(
               margin: const EdgeInsets.only(top: 12, bottom: 8),
               width: 48,
               height: 5,
-              decoration: BoxDecoration(
+            decoration: BoxDecoration(
                 color: Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
             // Header
-            Padding(
+          Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Row(
-                children: [
-                  const Text(
-                    'Booking Details',
+            child: Row(
+              children: [
+                const Text(
+                  'Booking Details',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
-            const Divider(height: 1),
-            Flexible(
-              child: SingleChildScrollView(
+          ),
+          const Divider(height: 1),
+          Flexible(
+            child: SingleChildScrollView(
                 controller: scrollController,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                 child: Column(
@@ -87,9 +87,9 @@ class BookingDetailsSheet extends StatelessWidget {
                           : Theme.of(context).cardColor,
                       child: Padding(
                         padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                             Row(
                               children: [
                                 const Icon(Icons.cleaning_services, color: Colors.blue, size: 22),
@@ -98,10 +98,10 @@ class BookingDetailsSheet extends StatelessWidget {
                                   child: Text(
                                     booking['service'] ?? '-',
                                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17, color: Theme.of(context).textTheme.bodyLarge?.color),
-                                  ),
-                                ),
-                              ],
-                            ),
+            ),
+          ),
+        ],
+      ),
                             const SizedBox(height: 14),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,9 +109,9 @@ class BookingDetailsSheet extends StatelessWidget {
                                 const Icon(Icons.location_on, color: Colors.redAccent, size: 20),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                                       Text(
                                         address,
                                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Theme.of(context).textTheme.bodyMedium?.color),
@@ -121,14 +121,14 @@ class BookingDetailsSheet extends StatelessWidget {
                                       if (lat != null && lng != null)
                                         Padding(
                                           padding: const EdgeInsets.only(top: 2),
-                                          child: Text(
+              child: Text(
                                             'Lat: ${lat.toStringAsFixed(5)}, Lng: ${lng.toStringAsFixed(5)}',
                                             style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 12),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
+              ),
+            ),
+          ],
+        ),
+      ),
                               ],
                             ),
                           ],
@@ -142,10 +142,10 @@ class BookingDetailsSheet extends StatelessWidget {
                       color: Theme.of(context).brightness == Brightness.dark
                           ? const Color(0xFF23262F)
                           : Theme.of(context).cardColor,
-                      child: Padding(
+      child: Padding(
                         padding: const EdgeInsets.all(20),
                         child: Row(
-                          children: [
+          children: [
                             const Icon(Icons.calendar_today, color: Colors.deepPurple, size: 20),
                             const SizedBox(width: 8),
                             Text(
@@ -185,9 +185,9 @@ class BookingDetailsSheet extends StatelessWidget {
                               _getPaymentStatus(),
                               style: TextStyle(fontWeight: FontWeight.w500, color: Theme.of(context).textTheme.bodySmall?.color),
                             ),
-                          ],
-                        ),
-                      ),
+          ],
+        ),
+      ),
                     ),
                     if (booking['notes'] != null && (booking['notes'] as String).trim().isNotEmpty) ...[
                       const SizedBox(height: 18),
@@ -197,11 +197,11 @@ class BookingDetailsSheet extends StatelessWidget {
                         color: Theme.of(context).brightness == Brightness.dark
                             ? const Color(0xFF23262F)
                             : Theme.of(context).cardColor,
-                        child: Padding(
+      child: Padding(
                           padding: const EdgeInsets.all(20),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                               const Icon(Icons.sticky_note_2, color: Colors.orange, size: 20),
                               const SizedBox(width: 8),
                               Expanded(
@@ -210,9 +210,9 @@ class BookingDetailsSheet extends StatelessWidget {
                                   style: TextStyle(fontSize: 15, color: Theme.of(context).textTheme.bodyMedium?.color),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
+          ],
+        ),
+      ),
                       ),
                     ],
                     const SizedBox(height: 28),

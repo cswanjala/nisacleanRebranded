@@ -215,14 +215,44 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
                           )
                         else if (status == BookingStatus.inprogress)
                           OutlinedButton.icon(
-                            onPressed: () {
-                              _showStatusUpdateDialog(
-                                context,
-                                job['id'],
-                                'Complete Job',
-                                'Are you sure you want to mark this job as completed?',
-                                'completed',
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Complete Job'),
+                                  content: const Text('Are you sure you want to mark this job as completed?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('Complete'),
+                                    ),
+                                  ],
+                                ),
                               );
+                              if (confirm == true) {
+                                setState(() => _isLoading = true);
+                                try {
+                                  await _bookingService.markBookingAsComplete(job['id']);
+                                  await _fetchJobs();
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Booking marked as completed!'), backgroundColor: Colors.green),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Failed to complete booking: $e'), backgroundColor: Colors.red),
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted) setState(() => _isLoading = false);
+                                }
+                              }
                             },
                             icon: const Icon(Icons.check),
                             label: const Text('Complete'),

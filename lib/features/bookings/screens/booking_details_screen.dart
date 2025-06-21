@@ -107,7 +107,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Stack(
-        children: [
+          children: [
           Container(
             height: 56,
             decoration: BoxDecoration(
@@ -134,9 +134,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                   ),
                 ],
               ),
+              ),
             ),
-          ),
-        ],
+          ],
       ),
     );
   }
@@ -145,7 +145,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     return _GlassCard(
       child: Row(
-        children: [
+          children: [
           Icon(Icons.cleaning_services, color: colorScheme.primary, size: 22),
           const SizedBox(width: 12),
           Expanded(
@@ -173,9 +173,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                 Text(providerName, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16, color: colorScheme.onSurface)),
                 Text('Service Provider', style: GoogleFonts.poppins(fontSize: 13, color: colorScheme.onSurface.withOpacity(0.6))),
               ],
@@ -195,9 +195,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           Icon(Icons.location_on, color: colorScheme.secondary, size: 22),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                 Text(address, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
                 if (lat != null && lng != null)
                   Padding(
@@ -235,17 +235,17 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     return _GlassCard(
       child: Row(
-        children: [
+      children: [
           Icon(Icons.calendar_today, color: colorScheme.secondary, size: 20),
           const SizedBox(width: 8),
-          Text(
+        Text(
             date,
             style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface),
           ),
           const SizedBox(width: 16),
           Icon(Icons.access_time, color: colorScheme.secondary, size: 20),
           const SizedBox(width: 8),
-          Text(
+        Text(
             time,
             style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface),
           ),
@@ -270,7 +270,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
+      decoration: BoxDecoration(
               color: badgeColor,
               borderRadius: BorderRadius.circular(12),
             ),
@@ -435,14 +435,14 @@ class _AnimatedSection extends StatelessWidget {
 
 String _getStatusLabel(String status) {
   switch (status) {
-    case 'pending':
-      return 'Pending';
+      case 'pending':
+        return 'Pending';
     case 'confirmation':
       return 'Awaiting Confirmation';
     case 'inprogress':
-      return 'In Progress';
-    case 'completed':
-      return 'Completed';
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
     case 'cancelled':
       return 'Cancelled';
     case 'disputed':
@@ -451,7 +451,7 @@ String _getStatusLabel(String status) {
       return 'Resolved';
     case 'closed':
       return 'Closed';
-    default:
+      default:
       return 'Pending';
   }
 }

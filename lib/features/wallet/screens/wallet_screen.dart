@@ -160,8 +160,8 @@ class _WalletScreenState extends State<WalletScreen>
                 BalanceCard(
                   balance: _balance ?? 0.0,
                   phoneNumber: _phoneNumber ?? '-',
-                  paymentMethod: 'Mpesa',
-                ),
+                paymentMethod: 'Mpesa',
+              ),
               const SizedBox(height: 16),
 
               /// Action Buttons
