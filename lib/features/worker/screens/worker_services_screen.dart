@@ -74,10 +74,10 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
 
   Future<void> _fetchServices() async {
     if (!_isRefreshing) {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     }
 
     try {
@@ -97,14 +97,14 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
         if (data['success'] == true) {
-          setState(() {
+        setState(() {
             _services = List<Map<String, dynamic>>.from(data['data'] ?? []);
-            _isLoading = false;
+          _isLoading = false;
             _isRefreshing = false;
-          });
-        } else {
+        });
+      } else {
           throw data['message'] ?? 'Failed to fetch services';
         }
       } else {
@@ -363,14 +363,14 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'My Services',
-                  style: GoogleFonts.poppins(
+          'My Services',
+          style: GoogleFonts.poppins(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+            color: Colors.white,
                     letterSpacing: -0.5,
-                  ),
-                ),
+          ),
+        ),
                 const SizedBox(height: 4),
                 Text(
                   'Manage your professional services',
@@ -379,9 +379,9 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                     color: Colors.white70,
                     fontWeight: FontWeight.w400,
                   ),
-                ),
-              ],
-            ),
+          ),
+        ],
+      ),
           ),
           IconButton(
             onPressed: () => _fetchServices(),
@@ -403,11 +403,11 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
   Widget _buildSearchAndFilters() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
+            child: Column(
+              children: [
           // Search Bar
-          Container(
-            decoration: BoxDecoration(
+            Container(
+              decoration: BoxDecoration(
               color: const Color(0xFF1A1A1A),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.white.withOpacity(0.1)),
@@ -470,7 +470,7 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
             color: isSelected ? Theme.of(context).colorScheme.primary : Colors.white.withOpacity(0.3),
           ),
         ),
-        child: Text(
+              child: Text(
           label,
           style: GoogleFonts.poppins(
             color: isSelected ? Colors.white : Colors.white70,
@@ -558,13 +558,13 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            service['name'] ?? 'Unnamed Service',
-                            style: GoogleFonts.poppins(
+                service['name'] ?? 'Unnamed Service',
+                style: GoogleFonts.poppins(
                               fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
                             ),
-                          ),
+                ),
                           if (createdAt != null) ...[
                             const SizedBox(height: 4),
                             Text(
@@ -586,8 +586,8 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                       itemBuilder: (context) => [
                         PopupMenuItem(
                           value: 'edit',
-                          child: Row(
-                            children: [
+              child: Row(
+                children: [
                               Icon(Icons.edit, color: Colors.white70, size: 18),
                               const SizedBox(width: 8),
                               Text('Edit', style: TextStyle(color: Colors.white70)),
@@ -617,7 +617,7 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                       ],
                     ),
                   ],
-                ),
+                  ),
                 const SizedBox(height: 12),
                 
                 // Description
@@ -642,7 +642,7 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                       Icons.access_time,
                       service['averageTime'] ?? 'Not specified',
                       Colors.blue,
-                    ),
+              ),
                     const SizedBox(width: 16),
                     _buildStatItem(
                       Icons.account_balance_wallet,
@@ -667,9 +667,9 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                       color: Colors.orange.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Row(
+                child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: [
+                    children: [
                         Icon(Icons.check_circle, color: Colors.orange, size: 14),
                         const SizedBox(width: 4),
                         Text(
@@ -681,14 +681,14 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                           ),
                         ),
                       ],
-                    ),
-                  ),
+                              ),
+                            ),
                 ],
               ],
             ),
           ),
-        ),
-      ),
+                      ),
+                    ),
     );
   }
 
@@ -705,8 +705,8 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
             color: Colors.white70,
             fontWeight: FontWeight.w500,
           ),
-        ),
-      ],
+            ),
+          ],
     );
   }
 
@@ -833,23 +833,23 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
 
   Widget _buildNoResultsState() {
     return Center(
-      child: Column(
+          child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+            children: [
           Icon(
             Icons.search_off,
             size: 64,
             color: Colors.white.withOpacity(0.3),
           ),
           const SizedBox(height: 16),
-          Text(
+              Text(
             'No services found',
-            style: GoogleFonts.poppins(
-              fontSize: 18,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
               fontWeight: FontWeight.w500,
               color: Colors.white70,
-            ),
-          ),
+                ),
+              ),
           const SizedBox(height: 8),
           Text(
             'Try adjusting your search or filters',
@@ -875,8 +875,8 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
             builder: (context) => WorkflowBuilderScreen(
               serviceName: service['name'] ?? 'Unnamed Service',
               serviceId: service['_id'] ?? '',
-            ),
-          ),
+                  ),
+                ),
         );
         break;
       case 'delete':
@@ -902,9 +902,9 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
               decoration: BoxDecoration(
                 color: Colors.red.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-              ),
+                  ),
               child: const Icon(Icons.delete, color: Colors.red, size: 24),
-            ),
+              ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -927,31 +927,31 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
               style: GoogleFonts.poppins(color: Colors.white70),
-            ),
+                  ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
+                  ElevatedButton(
+                    onPressed: () {
+                        Navigator.pop(context);
               _deleteService(service['_id']);
-            },
+                    },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
+                  ),
             child: Text(
               'Delete',
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
-          ),
-        ],
-      ),
-    );
+              ),
+            ],
+                    ),
+                  );
   }
 
   void _showAddServiceModal() {
@@ -980,8 +980,8 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
         builder: (context, scrollController) => Container(
           decoration: const BoxDecoration(
             color: Color(0xFF1A1A1A),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
           child: Column(
             children: [
               // Handle
@@ -1005,7 +1005,7 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
-                      ),
+        ),
                       child: Icon(
                         isEditing ? Icons.edit : Icons.add,
                         color: Theme.of(context).colorScheme.primary,
@@ -1014,17 +1014,17 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
                             isEditing ? 'Edit Service' : 'Add New Service',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
                               fontSize: 20,
-                            ),
-                          ),
+                ),
+              ),
                           Text(
                             isEditing ? 'Update your service details' : 'Create a new professional service',
                             style: GoogleFonts.poppins(
@@ -1053,15 +1053,15 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                         hint: 'e.g., House Cleaning, Car Wash',
                         icon: Icons.cleaning_services,
                         isRequired: true,
-                      ),
+              ),
                       const SizedBox(height: 16),
                       _buildFormField(
-                        controller: descriptionController,
+                controller: descriptionController,
                         label: 'Description',
                         hint: 'Describe what your service includes...',
                         icon: Icons.description,
                         maxLines: 3,
-                      ),
+              ),
                       const SizedBox(height: 16),
                       Row(
                         children: [
@@ -1071,7 +1071,7 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                               label: 'Budget (KES)',
                               hint: '0',
                               icon: Icons.account_balance_wallet,
-                              keyboardType: TextInputType.number,
+                keyboardType: TextInputType.number,
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -1082,10 +1082,10 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                               hint: 'e.g., 2-3 hours',
                               icon: Icons.access_time,
                             ),
-                          ),
+                  ),
                         ],
-                      ),
-                      const SizedBox(height: 20),
+              ),
+              const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -1108,7 +1108,7 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white70,
                           side: BorderSide(color: Colors.white.withOpacity(0.3)),
@@ -1120,11 +1120,11 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                         ),
                       ),
-                    ),
+                  ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
+                      onPressed: () {
                           if (nameController.text.trim().isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -1143,14 +1143,14 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                             'workflow': service?['workflow'] ?? [], // Keep existing workflow if editing
                           };
 
-                          Navigator.pop(context);
+                        Navigator.pop(context);
                           
                           if (isEditing) {
                             _updateService(service!['_id'], serviceData);
                           } else {
                             _createService(serviceData);
-                          }
-                        },
+                      }
+                    },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
@@ -1165,9 +1165,9 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
         ),
       ),
     );
@@ -1191,12 +1191,12 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
             const SizedBox(width: 8),
             Text(
               label,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
+          style: GoogleFonts.poppins(
+            color: Colors.white,
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
-              ),
-            ),
+          ),
+        ),
             if (isRequired) ...[
               const SizedBox(width: 4),
               Text(
@@ -1204,8 +1204,8 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
                 style: GoogleFonts.poppins(
                   color: Colors.red,
                   fontWeight: FontWeight.w500,
-                ),
-              ),
+          ),
+        ),
             ],
           ],
         ),

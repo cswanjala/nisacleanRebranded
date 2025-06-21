@@ -7,6 +7,8 @@ import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class BookingDetailsScreen extends StatefulWidget {
   final Booking booking;
@@ -93,7 +95,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _ActionBar(status: status),
+      bottomNavigationBar: _ActionBar(status: status, booking: widget.booking),
       backgroundColor: colorScheme.background,
     );
   }
@@ -309,72 +311,6 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       ),
     );
   }
-
-  Widget _ActionBar({required String status}) {
-    final colorScheme = Theme.of(context).colorScheme;
-    if (status == 'pending') {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-        child: Material(
-          elevation: 12,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          color: colorScheme.surface,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                // TODO: Implement payment logic
-              },
-              child: Ink(
-                decoration: BoxDecoration(
-                  color: colorScheme.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text('Pay Now', style: GoogleFonts.poppins(fontSize: 16, color: colorScheme.onPrimary)),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    } else if (status == 'completed') {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-        child: Material(
-          elevation: 12,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          color: colorScheme.surface,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                // TODO: Implement rating logic
-              },
-              child: Ink(
-                decoration: BoxDecoration(
-                  color: colorScheme.secondary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text('Rate Service', style: GoogleFonts.poppins(fontSize: 16, color: colorScheme.onSecondary)),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    return const SizedBox.shrink();
-  }
 }
 
 class _GlassCard extends StatelessWidget {
@@ -484,4 +420,290 @@ String _getPaymentStatus(String status) {
   if (status == 'pending' || status == 'confirmation') return 'Awaiting Payment';
   if (status == 'inprogress') return 'In Progress';
   return 'N/A';
+}
+
+class _ActionBar extends StatefulWidget {
+  final String status;
+  final Booking booking;
+  const _ActionBar({required this.status, required this.booking});
+  @override
+  State<_ActionBar> createState() => _ActionBarState();
+}
+
+class _ActionBarState extends State<_ActionBar> {
+  bool _isClosing = false;
+  bool _isClosed = false;
+  bool _isDisputing = false;
+  bool _isDisputed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isClosed = widget.status == 'closed';
+    _isDisputed = widget.status == 'disputed';
+  }
+
+  @override
+  void didUpdateWidget(covariant _ActionBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _isClosed = widget.status == 'closed';
+    _isDisputed = widget.status == 'disputed';
+  }
+
+  Future<void> _handleCloseBooking() async {
+    setState(() => _isClosing = true);
+    String bookingId = widget.booking.id;
+    try {
+      await BookingService().markBookingAsClosed(bookingId);
+      setState(() {
+        _isClosed = true;
+        _isClosing = false;
+      });
+      await _showRatingDialog();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Booking closed successfully.')),
+      );
+    } catch (e) {
+      setState(() => _isClosing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to close booking: $e')),
+      );
+    }
+  }
+
+  Future<void> _handleDisputeBooking() async {
+    setState(() => _isDisputing = true);
+    String bookingId = widget.booking.id;
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (ctx) {
+        final reasonController = TextEditingController();
+        final detailsController = TextEditingController();
+        return AlertDialog(
+          title: const Text('Dispute Booking'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: reasonController,
+                decoration: const InputDecoration(labelText: 'Reason'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: detailsController,
+                decoration: const InputDecoration(labelText: 'Details'),
+                minLines: 2,
+                maxLines: 4,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (reasonController.text.trim().isEmpty || detailsController.text.trim().isEmpty) return;
+                Navigator.pop(ctx, {
+                  'reason': reasonController.text.trim(),
+                  'details': detailsController.text.trim(),
+                });
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+    if (result != null) {
+      try {
+        await BookingService().createBookingDispute(
+          bookingId: bookingId,
+          reason: result['reason']!,
+          description: result['details']!,
+        );
+        setState(() {
+          _isDisputed = true;
+          // Also update the status to 'disputed' so the action bar hides
+          // (if you want to update the parent Booking object, you may need a callback)
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: const [
+                Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
+                SizedBox(width: 12),
+                Expanded(child: Text('Dispute submitted. Our team will review your case.')),
+              ],
+            ),
+            backgroundColor: Colors.grey[900],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } catch (e) {
+        setState(() => _isDisputing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit dispute: $e')),
+        );
+      }
+    } else {
+      setState(() => _isDisputing = false);
+    }
+  }
+
+  Future<void> _showRatingDialog() async {
+    double? rating;
+    String? feedback;
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        double tempRating = 0;
+        final feedbackController = TextEditingController();
+        return AlertDialog(
+          title: const Text('Rate Service (Optional)'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (i) => IconButton(
+                  icon: Icon(
+                    tempRating > i - 0.5 ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                  ),
+                  onPressed: () {
+                    tempRating = i + 1.0;
+                    rating = tempRating;
+                    (ctx as Element).markNeedsBuild();
+                  },
+                )),
+              ),
+              TextField(
+                controller: feedbackController,
+                decoration: const InputDecoration(labelText: 'Feedback (optional)'),
+                minLines: 2,
+                maxLines: 4,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Skip'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                feedback = feedbackController.text.trim();
+                Navigator.pop(ctx);
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+    // TODO: Send rating/feedback to backend if you have an endpoint
+    if (rating != null || (feedback != null && feedback!.isNotEmpty)) {
+      print('User submitted rating: $rating, feedback: $feedback');
+      // Optionally call a service method here
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    if (widget.status == 'pending') {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        child: Material(
+          elevation: 12,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          color: colorScheme.surface,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                // TODO: Implement payment logic
+              },
+              child: Ink(
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text('Pay Now', style: GoogleFonts.poppins(fontSize: 16, color: colorScheme.onPrimary)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    } else if (widget.status == 'completed' && !_isClosed && !_isDisputed) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        child: Material(
+          elevation: 12,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          color: colorScheme.surface,
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isClosing ? null : _handleCloseBooking,
+                  child: _isClosing
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Close Booking'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isDisputing ? null : _handleDisputeBooking,
+                  child: _isDisputing
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Dispute Booking'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.primary,
+                    side: BorderSide(color: colorScheme.primary),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else if (_isClosed) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        child: Material(
+          elevation: 12,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          color: colorScheme.surface,
+          child: Center(
+            child: Text('Booking Closed', style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      );
+    } else if (_isDisputed || widget.status == 'disputed') {
+      // Hide the action bar, just return an empty box
+      return const SizedBox.shrink();
+    }
+    return const SizedBox.shrink();
+  }
 }

@@ -236,7 +236,7 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
                               if (confirm == true) {
                                 setState(() => _isLoading = true);
                                 try {
-                                  await _bookingService.markBookingAsComplete(job['id']);
+                                  await _bookingService.markBookingAsComplete(job['_id']);
                                   await _fetchJobs();
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(

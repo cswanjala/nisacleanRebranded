@@ -199,19 +199,15 @@ class BookingService {
   Future<Map<String, dynamic>> markBookingAsComplete(String bookingId) async {
     try {
       final headers = await _getHeaders();
-      
       final response = await http.post(
         Uri.parse('$baseUrl/booking/complete'),
         headers: headers,
         body: jsonEncode({
-          'bookingId': bookingId,
+          'id': bookingId,
         }),
       );
-
-      print('Mark booking complete response: ${response.statusCode} - ${response.body}');
-
+      print('Mark booking complete response: \\${response.statusCode} - \\${response.body}');
       final data = jsonDecode(response.body);
-
       if (response.statusCode == 200 && data['success'] == true) {
         return data['data'];
       } else {
@@ -227,19 +223,15 @@ class BookingService {
   Future<Map<String, dynamic>> markBookingAsClosed(String bookingId) async {
     try {
       final headers = await _getHeaders();
-      
       final response = await http.post(
         Uri.parse('$baseUrl/booking/close'),
         headers: headers,
         body: jsonEncode({
-          'bookingId': bookingId,
+          'id': bookingId,
         }),
       );
-
-      print('Mark booking closed response: ${response.statusCode} - ${response.body}');
-
+      print('Mark booking closed response: \\${response.statusCode} - \\${response.body}');
       final data = jsonDecode(response.body);
-
       if (response.statusCode == 200 && data['success'] == true) {
         return data['data'];
       } else {

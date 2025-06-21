@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/booking.dart';
@@ -166,25 +167,29 @@ class BookingService {
 
   // Mark booking as complete (for workers)
   Future<Map<String, dynamic>> markBookingAsComplete(String bookingId) async {
+    assert(bookingId != null && bookingId.isNotEmpty, 'bookingId must not be null or empty');
+    print('[DEBUG] markBookingAsComplete called with bookingId: $bookingId');
     try {
       final headers = await _getHeaders();
-      
+      final body = jsonEncode({
+        'bookingId': bookingId,
+      });
+      print('[DEBUG] Sending POST to /booking/complete with body: $body');
       final response = await http.post(
         Uri.parse('$baseUrl/booking/complete'),
         headers: headers,
-        body: jsonEncode({
-          'bookingId': bookingId,
-        }),
+        body: body,
       );
-
+      print('[DEBUG] Response status: \\${response.statusCode}');
+      print('[DEBUG] Response body: \\${response.body}');
       final data = jsonDecode(response.body);
-
       if (response.statusCode == 200 && data['success'] == true) {
         return data['data'];
       } else {
         throw data['message'] ?? 'Failed to mark booking as complete';
       }
     } catch (e) {
+      print('[DEBUG] Exception in markBookingAsComplete: $e');
       throw e.toString();
     }
   }
@@ -193,7 +198,6 @@ class BookingService {
   Future<Map<String, dynamic>> markBookingAsClosed(String bookingId) async {
     try {
       final headers = await _getHeaders();
-      
       final response = await http.post(
         Uri.parse('$baseUrl/booking/close'),
         headers: headers,
@@ -201,9 +205,7 @@ class BookingService {
           'bookingId': bookingId,
         }),
       );
-
       final data = jsonDecode(response.body);
-
       if (response.statusCode == 200 && data['success'] == true) {
         return data['data'];
       } else {

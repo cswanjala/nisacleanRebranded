@@ -111,10 +111,10 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
             _isLoading = false;
           });
         } else {
-          setState(() {
+      setState(() {
             _steps = [];
-            _isLoading = false;
-          });
+        _isLoading = false;
+      });
         }
       } else {
         throw 'Failed to fetch workflow: ${response.statusCode}';
@@ -181,7 +181,7 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['success'] == true) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
                 children: [
@@ -311,11 +311,11 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
 
         final data = jsonDecode(response.body);
         if (response.statusCode == 200 && data['success'] == true) {
-          setState(() {
-            _steps = [];
-          });
+        setState(() {
+          _steps = [];
+        });
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Row(
                   children: [
@@ -335,7 +335,7 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
                 children: [
@@ -510,7 +510,7 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                children: [
+                  children: [
                   Text(
                     '${_steps.length} Workflow Steps',
                     style: GoogleFonts.poppins(
@@ -633,16 +633,16 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
+              crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
                       child: Text(
                         '${index + 1}',
                         style: GoogleFonts.poppins(
@@ -652,9 +652,9 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
+                ),
+                const SizedBox(width: 14),
+                Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -709,7 +709,7 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
                     ),
                   ),
                 ],
-              ),
+                ),
             ),
           ),
         );
@@ -859,8 +859,8 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                           Text(
                             isEditing ? 'Edit Step' : 'Add Workflow Step ${_steps.length + 1}',
                             style: GoogleFonts.poppins(
@@ -947,7 +947,7 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
                     const SizedBox(width: 16),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
+                      onPressed: () {
                           if (_stepController.text.trim().isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -966,7 +966,7 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
                               };
                             });
                           } else {
-                            _addStep();
+                        _addStep();
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -986,11 +986,11 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
                             }
                           }
 
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Colors.white,
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
