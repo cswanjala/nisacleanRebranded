@@ -1,8 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../models/workflow_model.dart';
-import '../services/workflow_service.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nisacleanv1/core/constants/api_constants.dart';
@@ -21,10 +19,9 @@ class WorkflowBuilderScreen extends StatefulWidget {
   State<WorkflowBuilderScreen> createState() => _WorkflowBuilderScreenState();
 }
 
-class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
-  final WorkflowService _workflowService = WorkflowService();
-  Workflow? _workflow;
-  List<WorkflowStep> _steps = [];
+class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen>
+    with TickerProviderStateMixin {
+  List<Map<String, dynamic>> _steps = [];
   bool _isLoading = true;
   bool _isSaving = false;
   String? _error;
@@ -32,10 +29,52 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
   final _stepController = TextEditingController();
   final _descriptionController = TextEditingController();
 
+  // Animation controllers
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
   @override
   void initState() {
     super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+    
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutCubic,
+    ));
+
     _fetchWorkflow();
+    _fadeController.forward();
+    _slideController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    _stepController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchWorkflow() async {
@@ -43,19 +82,15 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
       _isLoading = true;
       _error = null;
     });
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
       
       if (token == null) {
-        setState(() {
-          _error = 'Authentication token not found';
-          _isLoading = false;
-        });
-        return;
+        throw 'Authentication token not found';
       }
 
-      // Use the new dedicated workflow endpoint
       final response = await http.get(
         Uri.parse('${ApiConstants.baseUrl}/service/workflow/${widget.serviceId}'),
         headers: {
@@ -69,11 +104,10 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
         if (data['success'] == true) {
           final workflow = data['data']['workflow'] as List<dynamic>? ?? [];
           setState(() {
-            _steps = workflow.map((step) => WorkflowStep(
-              title: step['title'] ?? '',
-              description: step['description'] ?? '',
-              order: _steps.length + 1,
-            )).toList();
+            _steps = workflow.map((step) => {
+              'title': step['title'] ?? '',
+              'description': step['description'] ?? '',
+            }).toList();
             _isLoading = false;
           });
         } else {
@@ -83,27 +117,23 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
           });
         }
       } else {
-      setState(() {
-          _error = 'Failed to fetch workflow: ${response.statusCode}';
-        _isLoading = false;
-      });
+        throw 'Failed to fetch workflow: ${response.statusCode}';
       }
     } catch (e) {
       setState(() {
-        _error = 'Network error: ${e.toString()}';
+        _error = e.toString();
         _isLoading = false;
       });
     }
   }
 
   void _addStep() {
-    if (_stepController.text.isNotEmpty) {
+    if (_stepController.text.trim().isNotEmpty) {
       setState(() {
-        _steps.add(WorkflowStep(
-          title: _stepController.text,
-          description: _descriptionController.text,
-          order: _steps.length + 1,
-        ));
+        _steps.add({
+          'title': _stepController.text.trim(),
+          'description': _descriptionController.text.trim(),
+        });
         _stepController.clear();
         _descriptionController.clear();
       });
@@ -113,20 +143,22 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
   void _removeStepAt(int index) {
     setState(() {
       _steps.removeAt(index);
-      // Reorder
-      for (var i = 0; i < _steps.length; i++) {
-        _steps[i] = WorkflowStep(
-          id: _steps[i].id,
-          title: _steps[i].title,
-          description: _steps[i].description,
-          order: i + 1,
-        );
-      }
     });
   }
 
+  void _editStep(int index) {
+    final step = _steps[index];
+    _stepController.text = step['title'] ?? '';
+    _descriptionController.text = step['description'] ?? '';
+    
+    _showEditStepDialog(index);
+  }
+
   Future<void> _saveWorkflow() async {
-    setState(() { _isSaving = true; });
+    setState(() { 
+      _isSaving = true; 
+    });
+    
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
@@ -135,13 +167,6 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
         throw 'Authentication token not found';
       }
 
-      // Convert steps to the format expected by the API
-      final workflowSteps = _steps.map((step) => {
-        'title': step.title,
-        'description': step.description,
-      }).toList();
-
-      // Use the new dedicated workflow creation endpoint
       final response = await http.post(
         Uri.parse('${ApiConstants.baseUrl}/service/create-workflow/${widget.serviceId}'),
         headers: {
@@ -149,24 +174,52 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          'workflow': workflowSteps,
+          'workflow': _steps,
         }),
       );
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Workflow saved successfully!'), backgroundColor: Colors.green),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text('Workflow saved successfully!'),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          );
+        }
       } else {
         throw data['message'] ?? 'Failed to save workflow';
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save workflow: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Failed to save workflow: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        );
+      }
     } finally {
-      setState(() { _isSaving = false; });
+      setState(() { 
+        _isSaving = false; 
+      });
     }
   }
 
@@ -174,22 +227,68 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF23262F),
+        backgroundColor: const Color(0xFF2A2A2A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete Workflow', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
-        content: Text('Are you sure you want to delete this workflow?', style: GoogleFonts.poppins(color: Colors.white70)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.delete, color: Colors.red, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Delete Workflow',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete this workflow? This action cannot be undone.',
+          style: GoogleFonts.poppins(
+            color: Colors.white70,
+            fontSize: 14,
+            height: 1.4,
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(color: Colors.white70),
+            ),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
     );
+
     if (confirm == true) {
-      setState(() { _isSaving = true; });
+      setState(() { 
+        _isSaving = true; 
+      });
+      
       try {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('auth_token');
@@ -198,7 +297,7 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
           throw 'Authentication token not found';
         }
 
-        // Clear the workflow by setting it to an empty array using the new endpoint
+        // Clear the workflow by setting it to an empty array
         final response = await http.post(
           Uri.parse('${ApiConstants.baseUrl}/service/create-workflow/${widget.serviceId}'),
           headers: {
@@ -212,75 +311,203 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
 
         final data = jsonDecode(response.body);
         if (response.statusCode == 200 && data['success'] == true) {
-        setState(() {
-          _steps = [];
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Workflow deleted successfully!'), backgroundColor: Colors.green),
-        );
+          setState(() {
+            _steps = [];
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text('Workflow deleted successfully!'),
+                  ],
+                ),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            );
+          }
         } else {
           throw data['message'] ?? 'Failed to delete workflow';
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete workflow: $e'), backgroundColor: Colors.red),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('Failed to delete workflow: $e')),
+                ],
+              ),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          );
+        }
       } finally {
-        setState(() { _isSaving = false; });
+        setState(() { 
+          _isSaving = false; 
+        });
       }
     }
   }
 
   @override
-  void dispose() {
-    _stepController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A1A),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(72),
-        child: Container(
-          padding: const EdgeInsets.only(top: 24, left: 20, right: 20, bottom: 8),
-          color: Colors.transparent,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Workflow Builder', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24, letterSpacing: -0.5)),
-              const SizedBox(height: 2),
-              Text(widget.serviceName, style: GoogleFonts.poppins(color: Colors.white70, fontWeight: FontWeight.w400, fontSize: 14)),
-            ],
-          ),
+      backgroundColor: const Color(0xFF0A0A0A),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Workflow Builder',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
+              ),
+            ),
+            Text(
+              _steps.isEmpty 
+                  ? widget.serviceName
+                  : '${widget.serviceName} • ${_steps.length} step${_steps.length == 1 ? '' : 's'}',
+              style: GoogleFonts.poppins(
+                color: Colors.white70,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          if (_steps.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: _isSaving ? null : _deleteWorkflow,
+              tooltip: 'Delete Workflow',
+            ),
+        ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
           : _error != null
-              ? Center(child: Text('Error: $_error', style: GoogleFonts.poppins(color: Colors.redAccent)))
-              : Column(
+              ? _buildErrorState()
+              : FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: Column(
+                      children: [
+                        _buildHeader(),
+                        Expanded(
+                          child: _steps.isEmpty
+                              ? _buildEmptyState()
+                              : _buildWorkflowList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+      floatingActionButton: _buildFloatingActionButton(),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.assignment,
+              color: Theme.of(context).colorScheme.primary,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    const Divider(height: 1, color: Colors.white12, thickness: 1),
-                    if (_workflow == null && _steps.isEmpty)
-                      Expanded(child: _buildEmptyState())
-                    else ...[
-                      _buildHeaderActions(),
-                      Expanded(child: _buildStepper()),
+                    Text(
+                      '${_steps.length} Workflow Step${_steps.length == 1 ? '' : 's'}',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                      ),
+                    ),
+                    if (_steps.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${_steps.length}',
+                          style: GoogleFonts.poppins(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                     ],
                   ],
                 ),
-      floatingActionButton: _steps.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: _isSaving ? null : _saveWorkflow,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              icon: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.save),
-              label: Text('Save', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16, letterSpacing: 0.2)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            )
-          : null,
+                Text(
+                  _steps.isEmpty 
+                      ? 'Define the steps for your service'
+                      : 'Add more steps to complete your workflow',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Quick Add Step Button
+          if (_steps.isNotEmpty)
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: IconButton(
+                onPressed: () => _showAddStepDialog(),
+                icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                tooltip: 'Add Step ${_steps.length + 1}',
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -295,17 +522,36 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
               color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.assignment_outlined, size: 48, color: Theme.of(context).colorScheme.primary),
+            child: Icon(
+              Icons.assignment_outlined,
+              size: 64,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
           const SizedBox(height: 24),
-          Text('No Workflow Yet', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 20)),
+          Text(
+            'No Workflow Yet',
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('Tap below to create a workflow for this service.', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14), textAlign: TextAlign.center),
+          Text(
+            'Start by adding workflow steps\nto define your service process',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: Colors.white70,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
-            onPressed: () => setState(() { _steps = []; }),
+            onPressed: () => _showAddStepDialog(),
             icon: const Icon(Icons.add),
-            label: const Text('Create Workflow'),
+            label: const Text('Add First Step'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
@@ -318,206 +564,331 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
     );
   }
 
-  Widget _buildHeaderActions() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
-        children: [
-          Text('${_steps.length} step${_steps.length == 1 ? '' : 's'}', style: GoogleFonts.poppins(color: Colors.white70, fontWeight: FontWeight.w500, fontSize: 15)),
-          const Spacer(),
-          if (_workflow != null)
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.redAccent),
-              tooltip: 'Delete Workflow',
-              onPressed: _isSaving ? null : _deleteWorkflow,
+  Widget _buildWorkflowList() {
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: _steps.length,
+            itemBuilder: (context, index) {
+              final step = _steps[index];
+              return _buildWorkflowStep(step, index);
+            },
+          ),
+        ),
+        // Add Step Button at the bottom
+        Container(
+          padding: const EdgeInsets.all(20),
+          child: ElevatedButton.icon(
+            onPressed: () => _showAddStepDialog(),
+            icon: const Icon(Icons.add),
+            label: Text('Add Step ${_steps.length + 1}'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              foregroundColor: Theme.of(context).colorScheme.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                ),
+              ),
             ),
-          FloatingActionButton.small(
-            onPressed: () => _showAddStepDialog(context),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            child: const Icon(Icons.add),
-            heroTag: 'addStep',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWorkflowStep(Map<String, dynamic> step, int index) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Card(
+        elevation: 0,
+        color: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Step number
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              
+              // Step content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      step['title'] ?? 'Untitled Step',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (step['description']?.toString().isNotEmpty == true) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        step['description'],
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.white70,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              
+              // Actions
+              Column(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.white70, size: 20),
+                    onPressed: () => _editStep(index),
+                    tooltip: 'Edit Step',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                    onPressed: () => _removeStepAt(index),
+                    tooltip: 'Delete Step',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingActionButton() {
+    return FloatingActionButton.extended(
+      onPressed: _isSaving ? null : _saveWorkflow,
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      foregroundColor: Colors.white,
+      elevation: 8,
+      icon: _isSaving 
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.save),
+      label: Text(
+        _isSaving ? 'Saving...' : 'Save Workflow',
+        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Something Went Wrong',
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _error ?? 'An unexpected error occurred',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: Colors.white70,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: _fetchWorkflow,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Try Again'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStepper() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _steps.length,
-      itemBuilder: (context, index) {
-        final step = _steps[index];
-        return Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text('${index + 1}', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                      ),
-                    ),
-                    if (index < _steps.length - 1)
-                      Container(
-                        width: 2,
-                        height: 36,
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF23262F),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(step.title, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.white70, size: 18),
-                              tooltip: 'Edit Step',
-                              onPressed: () => _showEditStepDialog(context, step, index),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.redAccent, size: 18),
-                              tooltip: 'Delete Step',
-                              onPressed: () => _removeStepAt(index),
-                            ),
-                          ],
-                        ),
-                        if (step.description.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(step.description, style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12), maxLines: 3, overflow: TextOverflow.ellipsis),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
+  void _showAddStepDialog() {
+    _showStepFormDialog(null);
   }
 
-  void _showAddStepDialog(BuildContext context) {
+  void _showEditStepDialog(int index) {
+    _showStepFormDialog(index);
+  }
+
+  void _showStepFormDialog(int? index) {
+    final isEditing = index != null;
+    if (isEditing) {
+      final step = _steps[index!];
+      _stepController.text = step['title'] ?? '';
+      _descriptionController.text = step['description'] ?? '';
+    } else {
+      _stepController.clear();
+      _descriptionController.clear();
+    }
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.7,
         minChildSize: 0.5,
         maxChildSize: 0.9,
         builder: (context, scrollController) => Container(
           decoration: const BoxDecoration(
-            color: Color(0xFF2A2A2A),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            color: Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
+              // Handle
               Container(
-                margin: const EdgeInsets.only(top: 8),
+                margin: const EdgeInsets.only(top: 12),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
+              
+              // Header
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(Icons.add_circle_outline, color: Theme.of(context).colorScheme.primary, size: 20),
+                      child: Icon(
+                        isEditing ? Icons.edit : Icons.add,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 24,
+                      ),
                     ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Add Workflow Step', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
-                        Text('Step ${_steps.length + 1} of your workflow', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
-                      ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEditing ? 'Edit Step' : 'Add Workflow Step ${_steps.length + 1}',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 20,
+                            ),
+                          ),
+                          Text(
+                            isEditing 
+                                ? 'Update step details'
+                                : 'Step ${_steps.length + 1} of your workflow',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-              const Divider(color: Colors.white24),
+
+              // Form
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextField(
+                      _buildFormField(
                         controller: _stepController,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                        decoration: InputDecoration(
-                          labelText: 'Step Title',
-                          labelStyle: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.05),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          prefixIcon: Icon(Icons.title, color: Theme.of(context).colorScheme.primary, size: 18),
-                        ),
+                        label: isEditing ? 'Step Title' : 'Step ${_steps.length + 1} Title',
+                        hint: 'e.g., Initial Assessment, Deep Cleaning',
+                        icon: Icons.title,
+                        isRequired: true,
                       ),
                       const SizedBox(height: 16),
-                      TextField(
+                      _buildFormField(
                         controller: _descriptionController,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        label: 'Step Description',
+                        hint: 'Describe what this step involves...',
+                        icon: Icons.description,
                         maxLines: 3,
-                        decoration: InputDecoration(
-                          labelText: 'Step Description (Optional)',
-                          labelStyle: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.05),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          prefixIcon: Icon(Icons.description, color: Theme.of(context).colorScheme.primary, size: 18),
-                        ),
                       ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
               ),
+
+              // Actions
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2A),
+                  color: const Color(0xFF1A1A1A),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
@@ -527,31 +898,77 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
                   ],
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(
-                      onPressed: () {
-                        _stepController.clear();
-                        _descriptionController.clear();
-                        Navigator.pop(context);
-                      },
-                      style: TextButton.styleFrom(foregroundColor: Colors.white70, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), textStyle: const TextStyle(fontSize: 14)),
-                      child: const Text('Cancel'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        _addStep();
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        textStyle: const TextStyle(fontSize: 14),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white70,
+                          side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                        ),
                       ),
-                      child: const Text('Add Step'),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_stepController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Step title is required'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (isEditing) {
+                            setState(() {
+                              _steps[index!] = {
+                                'title': _stepController.text.trim(),
+                                'description': _descriptionController.text.trim(),
+                              };
+                            });
+                          } else {
+                            _addStep();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.check_circle, color: Colors.white, size: 16),
+                                      const SizedBox(width: 8),
+                                      Text('Step ${_steps.length} added successfully!'),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.green,
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 2),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              );
+                            }
+                          }
+
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(
+                          isEditing ? 'Update Step' : 'Add Step',
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -563,63 +980,61 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
     );
   }
 
-  void _showEditStepDialog(BuildContext context, WorkflowStep step, int index) {
-    final titleController = TextEditingController(text: step.title);
-    final descriptionController = TextEditingController(text: step.description);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2A2A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Edit Step ${index + 1}', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+  Widget _buildFormField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool isRequired = false,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            TextField(
-              controller: titleController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Step Title',
-                labelStyle: const TextStyle(color: Colors.white70),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.05),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            Icon(icon, color: Colors.white70, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
               ),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descriptionController,
-              style: const TextStyle(color: Colors.white),
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'Step Description',
-                labelStyle: const TextStyle(color: Colors.white70),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.05),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            if (isRequired) ...[
+              const SizedBox(width: 4),
+              Text(
+                '*',
+                style: GoogleFonts.poppins(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
+            ],
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _steps[index] = WorkflowStep(
-                  id: step.id,
-                  title: titleController.text,
-                  description: descriptionController.text,
-                  order: step.order,
-                );
-              });
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
-            child: const Text('Save'),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+            filled: true,
+            fillColor: const Color(0xFF2A2A2A),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 } 
