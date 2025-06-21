@@ -128,6 +128,8 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                         const SizedBox(height: 24),
                         _buildEarningsSummary(context),
                         const SizedBox(height: 24),
+                        _buildBookingsPerMonth(context),
+                        const SizedBox(height: 24),
                         _buildEarningsHistory(context),
                       ],
                     ),
@@ -137,11 +139,13 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
   }
 
   Widget _buildEarningsHeader(BuildContext context) {
-    final totalEarnings = _earningsData?['total']?['earnings'] ?? 0;
-    final todayEarnings = _earningsData?['today']?['earnings'] ?? 0;
-    final todayPercentage = _earningsData?['today']?['percentageChange'] ?? 0.0;
-    final thisWeekEarnings = _earningsData?['thisWeek']?['earnings'] ?? 0;
-    final thisWeekPercentage = _earningsData?['thisWeek']?['percentageChange'] ?? 0.0;
+    final rating = _earningsData?['rating'] ?? 0;
+    final daysActive = _earningsData?['daysActive'] ?? 0;
+    final totalRevenue = _earningsData?['totalRevenue'] ?? 0;
+    final totalBookings = _earningsData?['totalBookings'] ?? 0;
+    final completedBookings = _earningsData?['totalCompleted'] ?? 0;
+    final averageRevenuePerJob = _earningsData?['averageRevenuePerJob'] ?? 0;
+    final averageBookingDuration = _earningsData?['averageBookingDuration'] ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -169,128 +173,24 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_selectedDate != null) ...[
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => _fetchEarnings(),
-                  icon: const Icon(Icons.close, color: Colors.white70),
-                  iconSize: 20,
-                ),
-                Expanded(
-                  child: Text(
-                    'Earnings for ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total Earnings',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'KES ${totalEarnings.toStringAsFixed(0)}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.trending_up,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
           Row(
             children: [
-              Expanded(
-                child: _buildEarningsCard(
-                  'Today',
-                  'KES ${todayEarnings.toStringAsFixed(0)}',
-                  Icons.today,
-                  Colors.white,
-                  '${todayPercentage >= 0 ? '+' : ''}${todayPercentage.toStringAsFixed(1)}%',
-                  todayPercentage >= 0 ? Colors.green : Colors.red,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildEarningsCard(
-                  'This Week',
-                  'KES ${thisWeekEarnings.toStringAsFixed(0)}',
-                  Icons.calendar_today,
-                  Colors.white,
-                  '${thisWeekPercentage >= 0 ? '+' : ''}${thisWeekPercentage.toStringAsFixed(1)}%',
-                  thisWeekPercentage >= 0 ? Colors.green : Colors.red,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEarningsSummary(BuildContext context) {
-    final thisMonthEarnings = _earningsData?['thisMonth']?['earnings'] ?? 0;
-    final thisMonthPercentage = _earningsData?['thisMonth']?['percentageChange'] ?? 0.0;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+              Icon(Icons.star, color: Colors.amber, size: 28),
+              const SizedBox(width: 8),
               Text(
-                'Performance',
+                'Rating: $rating',
                 style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
-              TextButton.icon(
-                onPressed: () {
-                  // TODO: Show performance details
-                },
-                icon: const Icon(Icons.analytics_outlined),
-                label: const Text('Details'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
+              const Spacer(),
+              Text(
+                'Active: $daysActive days',
+                style: GoogleFonts.poppins(
+                  color: Colors.white70,
+                  fontSize: 14,
                 ),
               ),
             ],
@@ -298,16 +198,23 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(
-                child: _buildEarningsCard(
-                  'This Month',
-                  'KES ${thisMonthEarnings.toStringAsFixed(0)}',
-                  Icons.calendar_month,
-                  Theme.of(context).colorScheme.primary,
-                  '${thisMonthPercentage >= 0 ? '+' : ''}${thisMonthPercentage.toStringAsFixed(1)}%',
-                  thisMonthPercentage >= 0 ? Colors.green : Colors.red,
-                ),
-              ),
+              _buildMetricCard('Total Revenue', 'KES $totalRevenue', Icons.account_balance_wallet, Colors.green),
+              const SizedBox(width: 16),
+              _buildMetricCard('Total Bookings', '$totalBookings', Icons.work, Colors.blue),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildMetricCard('Completed', '$completedBookings', Icons.check_circle, Colors.purple),
+              const SizedBox(width: 16),
+              _buildMetricCard('Avg. Revenue/Job', 'KES $averageRevenuePerJob', Icons.trending_up, Colors.orange),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildMetricCard('Avg. Duration', '$averageBookingDuration min', Icons.timer, Colors.teal),
             ],
           ),
         ],
@@ -315,73 +222,191 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
     );
   }
 
-  Widget _buildEarningsCard(
-    String title,
-    String amount,
-    IconData icon,
-    Color iconColor,
-    String trend,
-    Color trendColor,
-  ) {
+  Widget _buildMetricCard(String title, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                color: Colors.white70,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEarningsSummary(BuildContext context) {
+    final todayTrend = _earningsData?['todayTrend'] ?? {};
+    final weeklyTrend = _earningsData?['weeklyTrend'] ?? {};
+    final monthTrend = _earningsData?['monthTrend'] ?? {};
+    // Today
+    final todayBookings = todayTrend['bookings']?['today'] ?? 0;
+    final todayBookingsYesterday = todayTrend['bookings']?['yesterday'] ?? 0;
+    final todayBookingsChange = todayTrend['bookings']?['change'] ?? 0;
+    final todayRevenue = todayTrend['revenue']?['today'] ?? 0;
+    final todayRevenueYesterday = todayTrend['revenue']?['yesterday'] ?? 0;
+    final todayRevenueChange = todayTrend['revenue']?['change'] ?? 0;
+    // Week
+    final weekBookings = weeklyTrend['thisWeek']?['bookings'] ?? 0;
+    final weekBookingsLast = weeklyTrend['lastWeek']?['bookings'] ?? 0;
+    final weekBookingsChange = weeklyTrend['change']?['bookings'] ?? 0;
+    final weekRevenue = weeklyTrend['thisWeek']?['revenue'] ?? 0;
+    final weekRevenueLast = weeklyTrend['lastWeek']?['revenue'] ?? 0;
+    final weekRevenueChange = weeklyTrend['change']?['revenue'] ?? 0;
+    // Month
+    final monthBookings = monthTrend['thisMonth']?['bookings'] ?? 0;
+    final monthBookingsLast = monthTrend['lastMonth']?['bookings'] ?? 0;
+    final monthBookingsChange = monthTrend['change']?['bookings'] ?? 0;
+    final monthRevenue = monthTrend['thisMonth']?['revenue'] ?? 0;
+    final monthRevenueLast = monthTrend['lastMonth']?['revenue'] ?? 0;
+    final monthRevenueChange = monthTrend['change']?['revenue'] ?? 0;
+    final monthAvgDuration = monthTrend['thisMonth']?['avgDuration'] ?? 0;
+    final monthAvgDurationLast = monthTrend['lastMonth']?['avgDuration'] ?? 0;
+    final monthAvgDurationChange = monthTrend['change']?['avgDuration'] ?? 0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Revenue & Bookings Trends',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildTrendRow('Today', todayRevenue, todayRevenueYesterday, todayRevenueChange, todayBookings, todayBookingsYesterday, todayBookingsChange),
+          const SizedBox(height: 12),
+          _buildTrendRow('This Week', weekRevenue, weekRevenueLast, weekRevenueChange, weekBookings, weekBookingsLast, weekBookingsChange),
+          const SizedBox(height: 12),
+          _buildTrendRow('This Month', monthRevenue, monthRevenueLast, monthRevenueChange, monthBookings, monthBookingsLast, monthBookingsChange, avgDuration: monthAvgDuration, avgDurationLast: monthAvgDurationLast, avgDurationChange: monthAvgDurationChange),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrendRow(String period, int revenue, int revenueLast, num revenueChange, int bookings, int bookingsLast, num bookingsChange, {int? avgDuration, int? avgDurationLast, num? avgDurationChange}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(period, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
           Row(
             children: [
-              Icon(icon, size: 18, color: iconColor),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white70,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
+              Icon(Icons.payments, color: Colors.green, size: 18),
+              const SizedBox(width: 4),
+              Text('Revenue: KES $revenue', style: GoogleFonts.poppins(color: Colors.white70)),
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: trendColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  trend,
-                  style: GoogleFonts.poppins(
-                    color: trendColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
+              Text('(Prev: KES $revenueLast)', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12)),
+              const SizedBox(width: 8),
+              Icon(revenueChange >= 0 ? Icons.trending_up : Icons.trending_down, color: revenueChange >= 0 ? Colors.green : Colors.red, size: 18),
+              Text('${revenueChange >= 0 ? '+' : ''}${revenueChange.toString()}%', style: GoogleFonts.poppins(color: revenueChange >= 0 ? Colors.green : Colors.red)),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            amount,
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: Colors.white,
-            ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(Icons.event, color: Colors.blue, size: 18),
+              const SizedBox(width: 4),
+              Text('Bookings: $bookings', style: GoogleFonts.poppins(color: Colors.white70)),
+              const SizedBox(width: 8),
+              Text('(Prev: $bookingsLast)', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12)),
+              const SizedBox(width: 8),
+              Icon(bookingsChange >= 0 ? Icons.trending_up : Icons.trending_down, color: bookingsChange >= 0 ? Colors.green : Colors.red, size: 18),
+              Text('${bookingsChange >= 0 ? '+' : ''}${bookingsChange.toString()}%', style: GoogleFonts.poppins(color: bookingsChange >= 0 ? Colors.green : Colors.red)),
+            ],
           ),
+          if (avgDuration != null && avgDurationLast != null && avgDurationChange != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.timer, color: Colors.teal, size: 18),
+                const SizedBox(width: 4),
+                Text('Avg. Duration: $avgDuration min', style: GoogleFonts.poppins(color: Colors.white70)),
+                const SizedBox(width: 8),
+                Text('(Prev: $avgDurationLast min)', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12)),
+                const SizedBox(width: 8),
+                Icon(avgDurationChange >= 0 ? Icons.trending_up : Icons.trending_down, color: avgDurationChange >= 0 ? Colors.green : Colors.red, size: 18),
+                Text('${avgDurationChange >= 0 ? '+' : ''}${avgDurationChange.toString()}%', style: GoogleFonts.poppins(color: avgDurationChange >= 0 ? Colors.green : Colors.red)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingsPerMonth(BuildContext context) {
+    final bookingsPerMonth = _earningsData?['bookingsPerMonth'] as List<dynamic>? ?? [];
+    if (bookingsPerMonth.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text('No monthly bookings data.', style: GoogleFonts.poppins(color: Colors.white70)),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Bookings Per Month', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 8),
+          ...bookingsPerMonth.map((entry) {
+            final id = entry['_id'] ?? {};
+            final month = id['month'] ?? '-';
+            final year = id['year'] ?? '-';
+            final count = entry['count'] ?? 0;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today, color: Colors.blue, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Month: $month/$year', style: GoogleFonts.poppins(color: Colors.white70)),
+                  const Spacer(),
+                  Text('Bookings: $count', style: GoogleFonts.poppins(color: Colors.white)),
+                ],
+              ),
+            );
+          }).toList(),
         ],
       ),
     );
@@ -516,9 +541,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                 final direction = transaction['direction']?.toString() ?? '';
                 final status = transaction['status']?.toString() ?? '';
                 final createdAt = transaction['createdAt']?.toString() ?? '';
-                final notes = transaction['notes']?.toString() ?? '';
                 final booking = transaction['booking']?.toString() ?? '';
-                
                 // Parse date
                 String formattedDate = '';
                 if (createdAt.isNotEmpty) {
@@ -529,76 +552,73 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                     formattedDate = createdAt.split('T').first;
                   }
                 }
-
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
-                  elevation: 0,
-                  color: const Color(0xFF2A2A2A),
+                  elevation: 2,
+                  color: const Color(0xFF232323),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: _getWorkerTransactionIconColor(type, direction).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            color: _getWorkerTransactionIconColor(type, direction).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
                             _getWorkerTransactionIcon(type, direction),
                             color: _getWorkerTransactionIconColor(type, direction),
-                            size: 20,
+                            size: 22,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                _getWorkerTransactionTitle(type, direction),
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 15,
-                                  color: Colors.white,
-                                ),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _getWorkerTransactionTitle(type, direction),
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  if (booking.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        'Booking: $booking',
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white54,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
-                              if (notes.isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  notes,
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                              if (booking.isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Booking: $booking',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white54,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
                               const SizedBox(height: 2),
                               Text(
                                 formattedDate,
                                 style: GoogleFonts.poppins(
                                   color: Colors.white70,
-                                  fontSize: 13,
+                                  fontSize: 11,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
@@ -607,25 +627,26 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.bold,
                                 color: _getWorkerTransactionAmountColor(type, direction),
-                                fontSize: 15,
+                                fontSize: 14,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 3,
+                                horizontal: 10,
+                                vertical: 5,
                               ),
                               decoration: BoxDecoration(
-                                color: _getStatusColor(status).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
+                                color: _getStatusColor(status).withOpacity(0.13),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
                                 status.toUpperCase(),
                                 style: GoogleFonts.poppins(
                                   color: _getStatusColor(status),
                                   fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ),
@@ -734,11 +755,9 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
       _isLoading = true;
       _error = null;
     });
-    
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-      
       if (token == null) {
         setState(() {
           _error = 'Authentication token not found';
@@ -746,13 +765,8 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
         });
         return;
       }
-
-      String url = '${ApiConstants.baseUrl}/booking/worker-earnings';
-      if (date != null) {
-        final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-        url += '?date=$dateString';
-      }
-
+      // Use new consolidated endpoint
+      String url = '${ApiConstants.baseUrl}/providers/metrics';
       final response = await http.get(
         Uri.parse(url),
         headers: {
@@ -760,10 +774,9 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
           'Authorization': 'Bearer $token',
         },
       );
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['success'] == true && data['message'] == 'Worker earnings fetched successfully') {
+        if (data['success'] == true) {
           setState(() {
             _earningsData = data['data'];
             _selectedDate = date;

@@ -558,59 +558,130 @@ class _ActionBarState extends State<_ActionBar> {
   Future<void> _showRatingDialog() async {
     double? rating;
     String? feedback;
+    bool submitted = false;
+    bool isLoading = false;
     await showDialog(
       context: context,
+      barrierDismissible: !isLoading,
       builder: (ctx) {
         double tempRating = 0;
         final feedbackController = TextEditingController();
-        return AlertDialog(
-          title: const Text('Rate Service (Optional)'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (i) => IconButton(
-                  icon: Icon(
-                    tempRating > i - 0.5 ? Icons.star : Icons.star_border,
-                    color: Colors.amber,
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('Rate Service', style: TextStyle(fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (i) => IconButton(
+                        icon: Icon(
+                          tempRating > i - 0.5 ? Icons.star : Icons.star_border,
+                          color: Colors.amber,
+                          size: 32,
+                        ),
+                        onPressed: isLoading ? null : () {
+                          setState(() {
+                            tempRating = i + 1.0;
+                          });
+                          rating = tempRating;
+                        },
+                      )),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: feedbackController,
+                      enabled: !isLoading,
+                      decoration: InputDecoration(
+                        labelText: 'Feedback (optional)',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      minLines: 2,
+                      maxLines: 4,
+                    ),
+                  ],
+                ),
+              ),
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.pop(ctx),
+                  child: const Text('Skip'),
+                ),
+                ElevatedButton(
+                  onPressed: (rating == null || isLoading)
+                      ? null
+                      : () async {
+                          setState(() { isLoading = true; });
+                          feedback = feedbackController.text.trim();
+                          try {
+                            await BookingService().submitReview(
+                              bookingId: widget.booking.id,
+                              rating: rating!,
+                              review: feedback ?? '',
+                            );
+                            if (context.mounted) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: const [
+                                      Icon(Icons.star, color: Colors.amber),
+                                      SizedBox(width: 12),
+                                      Expanded(child: Text('Thank you for your review!')),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.grey[900],
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  margin: const EdgeInsets.all(16),
+                                  duration: const Duration(seconds: 4),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: const [
+                                      Icon(Icons.error_outline, color: Colors.redAccent),
+                                      SizedBox(width: 12),
+                                      Expanded(child: Text('Failed to submit review. Please try again.')),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.grey[900],
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  margin: const EdgeInsets.all(16),
+                                  duration: const Duration(seconds: 4),
+                                ),
+                              );
+                            }
+                          }
+                          setState(() { isLoading = false; });
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  onPressed: () {
-                    tempRating = i + 1.0;
-                    rating = tempRating;
-                    (ctx as Element).markNeedsBuild();
-                  },
-                )),
-              ),
-              TextField(
-                controller: feedbackController,
-                decoration: const InputDecoration(labelText: 'Feedback (optional)'),
-                minLines: 2,
-                maxLines: 4,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Skip'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                feedback = feedbackController.text.trim();
-                Navigator.pop(ctx);
-              },
-              child: const Text('Submit'),
-            ),
-          ],
+                  child: isLoading
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                      : const Text('Submit'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
-    // TODO: Send rating/feedback to backend if you have an endpoint
-    if (rating != null || (feedback != null && feedback!.isNotEmpty)) {
-      print('User submitted rating: $rating, feedback: $feedback');
-      // Optionally call a service method here
-    }
   }
 
   @override

@@ -99,6 +99,7 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
       if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
         if (data['success'] == true) {
+        if (!mounted) return;
         setState(() {
             _services = List<Map<String, dynamic>>.from(data['data'] ?? []);
           _isLoading = false;
@@ -111,6 +112,7 @@ class _WorkerServicesScreenState extends State<WorkerServicesScreen>
         throw 'Failed to fetch services: ${response.statusCode}';
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;

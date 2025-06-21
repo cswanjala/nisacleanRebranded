@@ -382,4 +382,24 @@ class BookingService {
       throw data['message'] ?? 'Failed to fetch provider bookings by date';
     }
   }
+
+  // Submit a review for a booking
+  Future<void> submitReview({required String bookingId, required double rating, required String review}) async {
+    final headers = await _getHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/booking/submit-review'),
+      headers: headers,
+      body: jsonEncode({
+        'bookingId': bookingId,
+        'rating': rating,
+        'review': review,
+      }),
+    );
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200 && data['success'] == true) {
+      return;
+    } else {
+      throw data['message'] ?? 'Failed to submit review';
+    }
+  }
 } 
