@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/workflow_model.dart';
 import '../services/workflow_service.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nisacleanv1/core/constants/api_constants.dart';
 
 class WorkflowBuilderScreen extends StatefulWidget {
   final String serviceName;
@@ -40,15 +44,53 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
       _error = null;
     });
     try {
-      final workflow = await _workflowService.getWorkflowForService(widget.serviceId);
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      
+      if (token == null) {
+        setState(() {
+          _error = 'Authentication token not found';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Use the new dedicated workflow endpoint
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/service/workflow/${widget.serviceId}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          final workflow = data['data']['workflow'] as List<dynamic>? ?? [];
+          setState(() {
+            _steps = workflow.map((step) => WorkflowStep(
+              title: step['title'] ?? '',
+              description: step['description'] ?? '',
+              order: _steps.length + 1,
+            )).toList();
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _steps = [];
+            _isLoading = false;
+          });
+        }
+      } else {
       setState(() {
-        _workflow = workflow;
-        _steps = workflow?.steps ?? [];
+          _error = 'Failed to fetch workflow: ${response.statusCode}';
         _isLoading = false;
       });
+      }
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = 'Network error: ${e.toString()}';
         _isLoading = false;
       });
     }
@@ -86,22 +128,42 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
   Future<void> _saveWorkflow() async {
     setState(() { _isSaving = true; });
     try {
-      if (_workflow == null) {
-        final created = await _workflowService.createWorkflow(widget.serviceId, _steps);
-        setState(() { _workflow = created; });
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      
+      if (token == null) {
+        throw 'Authentication token not found';
+      }
+
+      // Convert steps to the format expected by the API
+      final workflowSteps = _steps.map((step) => {
+        'title': step.title,
+        'description': step.description,
+      }).toList();
+
+      // Use the new dedicated workflow creation endpoint
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/service/create-workflow/${widget.serviceId}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'workflow': workflowSteps,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Workflow created!')),
+          const SnackBar(content: Text('Workflow saved successfully!'), backgroundColor: Colors.green),
         );
       } else {
-        final updated = await _workflowService.updateWorkflow(_workflow!.id, _steps);
-        setState(() { _workflow = updated; });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Workflow updated!')),
-        );
+        throw data['message'] ?? 'Failed to save workflow';
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save workflow: $e')),
+        SnackBar(content: Text('Failed to save workflow: $e'), backgroundColor: Colors.red),
       );
     } finally {
       setState(() { _isSaving = false; });
@@ -129,17 +191,39 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
     if (confirm == true) {
       setState(() { _isSaving = true; });
       try {
-        await _workflowService.deleteWorkflow(_workflow!.id);
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('auth_token');
+        
+        if (token == null) {
+          throw 'Authentication token not found';
+        }
+
+        // Clear the workflow by setting it to an empty array using the new endpoint
+        final response = await http.post(
+          Uri.parse('${ApiConstants.baseUrl}/service/create-workflow/${widget.serviceId}'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'workflow': [],
+          }),
+        );
+
+        final data = jsonDecode(response.body);
+        if (response.statusCode == 200 && data['success'] == true) {
         setState(() {
-          _workflow = null;
           _steps = [];
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Workflow deleted.')),
+            const SnackBar(content: Text('Workflow deleted successfully!'), backgroundColor: Colors.green),
         );
+        } else {
+          throw data['message'] ?? 'Failed to delete workflow';
+        }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete workflow: $e')),
+          SnackBar(content: Text('Failed to delete workflow: $e'), backgroundColor: Colors.red),
         );
       } finally {
         setState(() { _isSaving = false; });
