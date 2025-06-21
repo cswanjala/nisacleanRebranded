@@ -261,30 +261,185 @@ class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectio
             final profilePic = provider['profilePic'] as String?;
             final name = provider['name'] as String? ?? 'Unknown';
             final id = provider['_id'] as String? ?? '';
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                leading: profilePic != null && profilePic.isNotEmpty
-                    ? CircleAvatar(backgroundImage: NetworkImage(profilePic))
-                    : const CircleAvatar(child: Icon(Icons.person)),
-                title: Text(
-                  name,
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
-                ),
-                trailing: Radio<String>(
-                  value: id,
-                  groupValue: _selectedProviderId,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedProviderId = value;
-                    });
-                  },
-                ),
-              ),
+            return _ProviderExpansionTile(
+              provider: provider,
+              selectedProviderId: _selectedProviderId,
+              onSelect: (value) {
+                setState(() {
+                  _selectedProviderId = value;
+                });
+              },
             );
           },
         ),
       ],
     );
   }
-} 
+}
+
+class _ProviderExpansionTile extends StatefulWidget {
+  final Map<String, dynamic> provider;
+  final String? selectedProviderId;
+  final ValueChanged<String?> onSelect;
+  const _ProviderExpansionTile({super.key, required this.provider, required this.selectedProviderId, required this.onSelect});
+
+  @override
+  State<_ProviderExpansionTile> createState() => _ProviderExpansionTileState();
+}
+
+class _ProviderExpansionTileState extends State<_ProviderExpansionTile> {
+  bool _expanded = false;
+  bool _isLoadingServices = false;
+  String? _servicesError;
+  List<Map<String, dynamic>> _services = [];
+  Map<String, _WorkflowState> _workflowStates = {};
+
+  void _onExpansionChanged(bool expanded) async {
+    setState(() {
+      _expanded = expanded;
+    });
+    if (expanded && _services.isEmpty && !_isLoadingServices) {
+      setState(() {
+        _isLoadingServices = true;
+        _servicesError = null;
+      });
+      try {
+        final providerId = widget.provider['_id'] ?? widget.provider['id'] ?? '';
+        print('DEBUG: Provider object: ' + widget.provider.toString());
+        print('DEBUG: Fetching services for providerId: $providerId');
+        final services = await BookingService().getProviderServices(providerId);
+        setState(() {
+          _services = services;
+          _isLoadingServices = false;
+        });
+      } catch (e) {
+        setState(() {
+          _servicesError = e.toString();
+          _isLoadingServices = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchWorkflow(String serviceId) async {
+    setState(() {
+      _workflowStates[serviceId] = _WorkflowState.loading();
+    });
+    try {
+      final response = await BookingService().getWorkflowForService(serviceId);
+      setState(() {
+        _workflowStates[serviceId] = _WorkflowState.loaded(response);
+      });
+    } catch (e) {
+      setState(() {
+        _workflowStates[serviceId] = _WorkflowState.error(e.toString());
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = widget.provider;
+    final profilePic = provider['profilePic'] as String?;
+    final name = provider['name'] as String? ?? 'Unknown';
+    final id = provider['_id'] as String? ?? '';
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ExpansionTile(
+        leading: profilePic != null && profilePic.isNotEmpty
+            ? CircleAvatar(backgroundImage: NetworkImage(profilePic))
+            : const CircleAvatar(child: Icon(Icons.person)),
+        title: Text(
+          name,
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+        ),
+        trailing: Radio<String>(
+          value: id,
+          groupValue: widget.selectedProviderId,
+          onChanged: (value) => widget.onSelect(value),
+        ),
+        initiallyExpanded: false,
+        onExpansionChanged: _onExpansionChanged,
+        children: [
+          if (_isLoadingServices)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_servicesError != null)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Error: $_servicesError', style: const TextStyle(color: Colors.red)),
+            )
+          else if (_services.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('No services found for this provider.'),
+            )
+          else
+            ..._services.map((service) {
+              final serviceId = service['_id'] ?? service['id'] ?? '';
+              final workflowState = _workflowStates[serviceId] ?? _WorkflowState.initial();
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: ExpansionTile(
+                  title: Text(service['name'] ?? 'Service', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+                  subtitle: Text(service['description'] ?? '', style: GoogleFonts.poppins(fontSize: 13)),
+                  onExpansionChanged: (expanded) {
+                    if (expanded && workflowState.status == WorkflowStatus.initial) {
+                      _fetchWorkflow(serviceId);
+                    }
+                  },
+                  children: [
+                    if (workflowState.status == WorkflowStatus.loading)
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (workflowState.status == WorkflowStatus.error)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text('Error: ${workflowState.error}', style: const TextStyle(color: Colors.red)),
+                      )
+                    else if (workflowState.steps.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text('No workflow steps available.'),
+                      )
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Text('Workflow Steps:', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                          ),
+                          ...workflowState.steps.map((step) => ListTile(
+                                leading: const Icon(Icons.check_circle_outline, color: Colors.green),
+                                title: Text(step, style: GoogleFonts.poppins()),
+                              )),
+                        ],
+                      ),
+                  ],
+                ),
+              );
+            }).toList(),
+        ],
+      ),
+    );
+  }
+}
+
+// Helper class to manage workflow state for each service
+class _WorkflowState {
+  final WorkflowStatus status;
+  final List<String> steps;
+  final String? error;
+  _WorkflowState._(this.status, this.steps, this.error);
+  factory _WorkflowState.initial() => _WorkflowState._(WorkflowStatus.initial, [], null);
+  factory _WorkflowState.loading() => _WorkflowState._(WorkflowStatus.loading, [], null);
+  factory _WorkflowState.loaded(List<String> steps) => _WorkflowState._(WorkflowStatus.loaded, steps, null);
+  factory _WorkflowState.error(String error) => _WorkflowState._(WorkflowStatus.error, [], error);
+}
+
+enum WorkflowStatus { initial, loading, loaded, error } 

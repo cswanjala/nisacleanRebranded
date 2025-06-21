@@ -402,4 +402,53 @@ class BookingService {
       throw data['message'] ?? 'Failed to submit review';
     }
   }
+
+  // Fetch workflow steps for a given service
+  Future<List<String>> getWorkflowForService(String serviceId) async {
+    try {
+      final headers = await _getHeaders();
+      final uri = Uri.parse('[200~$baseUrl/service/workflow/$serviceId');
+      final response = await http.get(uri, headers: headers);
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        final steps = data['data'] as List?;
+        if (steps == null) return [];
+        // Each step may be a map with a 'description' or 'name' field
+        return steps.map<String>((step) {
+          if (step is Map && step.containsKey('description')) {
+            return step['description'] as String;
+          } else if (step is Map && step.containsKey('name')) {
+            return step['name'] as String;
+          } else if (step is String) {
+            return step;
+          } else {
+            return 'Step';
+          }
+        }).toList();
+      } else {
+        throw data['message'] ?? 'Failed to fetch workflow steps';
+      }
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Fetch services for a given provider (using /service/provider/:providerId)
+  Future<List<Map<String, dynamic>>> getProviderServices(String providerId) async {
+    try {
+      final headers = await _getHeaders();
+      final uri = Uri.parse('$baseUrl/service/provider/$providerId');
+      final response = await http.get(uri, headers: headers);
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        final services = data['data'] as List?;
+        if (services == null) return [];
+        return services.map((e) => Map<String, dynamic>.from(e)).toList();
+      } else {
+        throw data['message'] ?? 'Failed to fetch provider services';
+      }
+    } catch (e) {
+      return [];
+    }
+  }
 } 
