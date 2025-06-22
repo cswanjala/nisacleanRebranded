@@ -37,11 +37,12 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   int _completedJobsCount = 0;
   bool _isCompletedJobsLoading = false;
   String? _completedJobsError;
+  int _currentBookingPage = 0;
+  static const int _bookingsPerPage = 3;
 
   @override
   void initState() {
     super.initState();
-    // Always fetch the latest profile when this screen is built
     context.read<AuthBloc>().add(FetchProfileRequested());
     _selectedDay = DateTime.now();
     _fetchJobsForDay(_selectedDay!);
@@ -50,16 +51,39 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     _fetchCompletedJobsCount();
   }
 
-  Future<void> _fetchJobsForDay(DateTime day) async {
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _fetchJobsForDay(DateTime day, {bool reset = false}) async {
     setState(() {
       _isLoading = true;
       _error = null;
+      if (reset) {
+        _jobs = [];
+      }
     });
     try {
       final jobs = await _bookingService.getProviderBookings();
+      print('Selected day: $day');
+      // jobs is List<Map<String, dynamic>>, convert to List<Booking> and filter
+      final filteredJobs = jobs.map((json) => Booking.fromJson(json)).where((booking) {
+        DateTime bookingDate;
+        if (booking.date is DateTime) {
+          bookingDate = (booking.date as DateTime).toLocal();
+        } else {
+          bookingDate = DateTime.parse(booking.date.toString()).toLocal();
+        }
+        print('Booking: \\${booking.id}, date: \\${bookingDate.toIso8601String()}');
+        return bookingDate.year == day.year &&
+               bookingDate.month == day.month &&
+               bookingDate.day == day.day;
+      }).toList();
       setState(() {
-        _jobs = jobs.map((json) => Booking.fromJson(json)).toList();
+        _jobs = filteredJobs;
         _isLoading = false;
+        _currentBookingPage = 0;
       });
     } catch (e) {
       setState(() {
@@ -70,6 +94,10 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     }
   }
 
+  void _loadMoreJobs() {
+    // _scrollController.addListener(_loadMoreJobs);
+  }
+
   Future<void> _fetchRecentActivities() async {
     setState(() {
       _isActivitiesLoading = true;
@@ -78,7 +106,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-      
+
       if (token == null) {
         setState(() {
           _activitiesError = 'Authentication token not found';
@@ -99,8 +127,6 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['message'] == 'User activities fetched successfully') {
           final activities = data['data'] ?? [];
-          
-          // Transform activities to match our UI format
           final transformedActivities = activities.map<Map<String, dynamic>>((activity) {
             return {
               'id': activity['_id'] ?? '',
@@ -108,7 +134,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
               'description': activity['description'] ?? '',
               'timestamp': activity['createdAt'] ?? '',
               'type': _getActivityTypeFromAction(activity['action'] ?? ''),
-              'read': false, // Activities are always unread by default
+              'read': false,
             };
           }).toList();
 
@@ -136,7 +162,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     }
   }
 
-  Future<void> _fetchTodayJobsCount() async {
+   Future<void> _fetchTodayJobsCount() async {
     setState(() {
       _isTodayJobsLoading = true;
       _todayJobsError = null;
@@ -240,6 +266,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     }
   }
 
+
+
   String _getActivityTypeFromAction(String action) {
     switch (action.toUpperCase()) {
       case 'BOOKING CREATED':
@@ -267,7 +295,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
 
   Future<void> _refreshAllData() async {
     await Future.wait([
-      _fetchJobsForDay(_selectedDay!),
+      _fetchJobsForDay(_selectedDay!, reset: true),
       _fetchRecentActivities(),
       _fetchTodayJobsCount(),
       _fetchCompletedJobsCount(),
@@ -289,63 +317,114 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     }
   }
 
+  List<Booking> get _pagedBookings {
+    final start = _currentBookingPage * _bookingsPerPage;
+    return _jobs.skip(start).take(_bookingsPerPage).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
       body: RefreshIndicator(
         onRefresh: _refreshAllData,
-        color: Theme.of(context).colorScheme.primary,
+        color: Colors.white,
         backgroundColor: const Color(0xFF2A2A2A),
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
-              expandedHeight: 200,
+              expandedHeight: 180,
               floating: false,
               pinned: true,
               backgroundColor: const Color(0xFF1A1A1A),
               flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
                 title: BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
                     final name = state.name ?? 'User';
                     return Text(
-                      'Welcome Back, $name!',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+                      'Welcome, $name!',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        fontSize: 20,
+                      ),
                     );
                   },
                 ),
                 background: Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                      ],
+                      colors: [Color(0xFF4A90E2), Color(0xFF3A7BD5)],
                     ),
                   ),
                   child: Center(
                     child: Icon(
                       Icons.cleaning_services,
-                      size: 64,
-                      color: Colors.white.withOpacity(0.3),
+                      size: 80,
+                      color: Colors.white.withOpacity(0.2),
                     ),
                   ),
                 ),
               ),
             ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _StickyHeaderDelegate(
+                minHeight: 80,
+                maxHeight: 100,
+                child: Container(
+                  color: const Color(0xFF1A1A1A),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Schedule for ${_formatDate(_selectedDay ?? DateTime.now())}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              if (_selectedDay != null && !isSameDay(_selectedDay, DateTime.now()))
+                                TextButton.icon(
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedDay = DateTime.now();
+                                      _focusedDay = DateTime.now();
+                                    });
+                                    _fetchJobsForDay(_selectedDay!);
+                                  },
+                                  icon: const Icon(Icons.today, size: 18),
+                                  label: const Text('Today'),
+                                  style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(child: _buildCalendar()),
+            _buildScheduleList(),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildTodaySchedule(context),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     _buildQuickStats(context),
                     const SizedBox(height: 24),
                     _buildRecentActivity(context),
@@ -356,56 +435,6 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTodaySchedule(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Schedule for ${_formatDate(_selectedDay ?? DateTime.now())}',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            if (_selectedDay != null && !isSameDay(_selectedDay, DateTime.now()))
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _selectedDay = DateTime.now();
-                    _focusedDay = DateTime.now();
-                  });
-                },
-                icon: const Icon(Icons.today),
-                label: const Text('Today'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Card(
-          elevation: 0,
-          color: const Color(0xFF2A2A2A),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              _buildCalendar(),
-              const Divider(color: Colors.white24),
-              _buildScheduleList(),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -426,64 +455,60 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   }
 
   Widget _buildCalendar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: TableCalendar(
-        firstDay: DateTime.now().subtract(const Duration(days: 365)),
-        lastDay: DateTime.now().add(const Duration(days: 365)),
-        focusedDay: _focusedDay,
-        calendarFormat: _calendarFormat,
-        selectedDayPredicate: (day) {
-          return isSameDay(_selectedDay, day);
-        },
-        onDaySelected: (selectedDay, focusedDay) {
-          setState(() {
-            _selectedDay = selectedDay;
-            _focusedDay = focusedDay;
-          });
-          _fetchJobsForDay(selectedDay);
-        },
-        onFormatChanged: (format) {
-          setState(() {
-            _calendarFormat = format;
-          });
-        },
-        calendarStyle: CalendarStyle(
-          outsideDaysVisible: false,
-          weekendTextStyle: const TextStyle(color: Colors.white70),
-          defaultTextStyle: const TextStyle(color: Colors.white),
-          selectedDecoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            shape: BoxShape.circle,
+    return Card(
+      elevation: 2,
+      color: const Color(0xFF2A2A2A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: TableCalendar(
+          firstDay: DateTime.now().subtract(const Duration(days: 365)),
+          lastDay: DateTime.now().add(const Duration(days: 365)),
+          focusedDay: _focusedDay,
+          calendarFormat: _calendarFormat,
+          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+          onDaySelected: (selectedDay, focusedDay) {
+            setState(() {
+              _selectedDay = selectedDay;
+              _focusedDay = focusedDay;
+            });
+            _fetchJobsForDay(selectedDay, reset: true);
+          },
+          onFormatChanged: (format) {
+            setState(() {
+              _calendarFormat = format;
+            });
+          },
+          calendarStyle: CalendarStyle(
+            outsideDaysVisible: false,
+            weekendTextStyle: const TextStyle(color: Colors.white70),
+            defaultTextStyle: const TextStyle(color: Colors.white),
+            selectedDecoration: const BoxDecoration(
+              color: Color(0xFF4A90E2),
+              shape: BoxShape.circle,
+            ),
+            todayDecoration: BoxDecoration(
+              color: const Color(0xFF4A90E2).withOpacity(0.3),
+              shape: BoxShape.circle,
+            ),
           ),
-          todayDecoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-            shape: BoxShape.circle,
-          ),
-        ),
-        headerStyle: HeaderStyle(
-          formatButtonVisible: true,
-          titleCentered: true,
-          formatButtonShowsNext: false,
-          formatButtonDecoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          formatButtonTextStyle: TextStyle(
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          titleTextStyle: GoogleFonts.poppins(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-          leftChevronIcon: Icon(
-            Icons.chevron_left,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          rightChevronIcon: Icon(
-            Icons.chevron_right,
-            color: Theme.of(context).colorScheme.primary,
+          headerStyle: HeaderStyle(
+            formatButtonVisible: true,
+            titleCentered: true,
+            formatButtonShowsNext: false,
+            formatButtonDecoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            formatButtonTextStyle: const TextStyle(color: Colors.white70),
+            titleTextStyle: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+            leftChevronIcon: const Icon(Icons.chevron_left, color: Colors.white70),
+            rightChevronIcon: const Icon(Icons.chevron_right, color: Colors.white70),
           ),
         ),
       ),
@@ -491,93 +516,165 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   }
 
   Widget _buildScheduleList() {
-    if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(child: CircularProgressIndicator()),
+    if (_isLoading && _jobs.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator(color: Colors.white70)),
+        ),
       );
     }
     if (_error != null) {
-      return Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          'Error loading jobs: $_error!',
-          style: GoogleFonts.poppins(color: Colors.red, fontSize: 16),
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red.withOpacity(0.7)),
+              const SizedBox(height: 16),
+              Text(
+                'Error: $_error',
+                style: GoogleFonts.poppins(color: Colors.red, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => _fetchJobsForDay(_selectedDay!, reset: true),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A90E2),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
-    final dayJobs = _jobs;
+    final dayJobs = _pagedBookings;
     if (dayJobs.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(
-              Icons.event_busy,
-              size: 48,
-              color: Colors.white.withOpacity(0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No bookings for ${_formatDate(_selectedDay ?? DateTime.now())}',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                color: Colors.white70,
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Icon(Icons.event_busy, size: 48, color: Colors.white.withOpacity(0.3)),
+              const SizedBox(height: 16),
+              Text(
+                'No bookings for ${_formatDate(_selectedDay ?? DateTime.now())}',
+                style: GoogleFonts.poppins(fontSize: 16, color: Colors.white70),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'New bookings will appear here',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: Colors.white54,
+              const SizedBox(height: 8),
+              Text(
+                'New bookings will appear here',
+                style: GoogleFonts.poppins(fontSize: 14, color: Colors.white54),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: dayJobs.length,
-      separatorBuilder: (context, index) => const Divider(color: Colors.white24),
-      itemBuilder: (context, index) {
-        final job = dayJobs[index];
-        final statusStr = job.status.toString().split('.').last;
-        String statusLabel = '';
-        switch (statusStr) {
-          case 'pending':
-            statusLabel = 'Pending';
-            break;
-          case 'confirmation':
-            statusLabel = 'Awaiting Confirmation';
-            break;
-          case 'inprogress':
-            statusLabel = 'In Progress';
-            break;
-          case 'completed':
-            statusLabel = 'Completed';
-            break;
-          case 'cancelled':
-            statusLabel = 'Cancelled';
-            break;
-          default:
-            statusLabel = statusStr;
-        }
-        return _buildScheduleItem(
-                context,
-          job.service,
-          job.time,
-          job.location.address,
-          _getStatusColor(statusStr),
-          clientName: job.user.name,
-          statusLabel: statusLabel,
-          booking: job,
-                  );
-                },
+    return SliverToBoxAdapter(
+      child: Column(
+        children: [
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: dayJobs.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final job = dayJobs[index];
+              final statusStr = job.status.toString().split('.').last;
+              String statusLabel = '';
+              switch (statusStr) {
+                case 'pending':
+                  statusLabel = 'Pending';
+                  break;
+                case 'confirmation':
+                  statusLabel = 'Awaiting Confirmation';
+                  break;
+                case 'inprogress':
+                  statusLabel = 'In Progress';
+                  break;
+                case 'completed':
+                  statusLabel = 'Completed';
+                  break;
+                case 'cancelled':
+                  statusLabel = 'Cancelled';
+                  break;
+                default:
+                  statusLabel = statusStr;
+              }
+              return AnimatedOpacity(
+                opacity: 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Card(
+                    elevation: 2,
+                    color: const Color(0xFF2A2A2A),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: _buildScheduleItem(
+                      context,
+                      job.service,
+                      job.time,
+                      job.location.address,
+                      _getStatusColor(statusStr),
+                      clientName: job.user.name,
+                      statusLabel: statusLabel,
+                      booking: job,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: _currentBookingPage > 0
+                    ? () {
+                        setState(() {
+                          _currentBookingPage--;
+                        });
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A90E2),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  minimumSize: const Size(40, 40),
+                ),
+                child: const Icon(Icons.arrow_upward),
+              ),
+              const SizedBox(width: 16),
+              ElevatedButton(
+                onPressed: ((_currentBookingPage + 1) * _bookingsPerPage) < _jobs.length
+                    ? () {
+                        setState(() {
+                          _currentBookingPage++;
+                        });
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A90E2),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  minimumSize: const Size(40, 40),
+                ),
+                child: const Icon(Icons.arrow_downward),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -598,19 +695,36 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.cleaning_services, color: color, size: 32),
-          const SizedBox(width: 16),
+          CircleAvatar(
+            backgroundColor: color.withOpacity(0.2),
+            child: Icon(Icons.cleaning_services, color: color, size: 24),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
+                Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
                 Row(
                   children: [
                     Icon(Icons.access_time, size: 14, color: Colors.white70),
                     const SizedBox(width: 4),
-                    Text(time, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      time,
+                      style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -619,8 +733,13 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                     Icon(Icons.location_on, size: 14, color: Colors.white70),
                     const SizedBox(width: 4),
                     Expanded(
-                      child: Text(location, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        location,
+                        style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
+                    ),
                   ],
                 ),
                 if (clientName != null && clientName.isNotEmpty) ...[
@@ -629,10 +748,15 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                     children: [
                       Icon(Icons.person, size: 14, color: Colors.white70),
                       const SizedBox(width: 4),
-                      Text('Client: $clientName', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ],
+                      Text(
+                        'Client: $clientName',
+                        style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ],
                 if (canSendInvoice) ...[
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
@@ -642,24 +766,39 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                         builder: (ctx) {
                           final controller = TextEditingController();
                           return AlertDialog(
-                            title: const Text('Send Invoice'),
+                            backgroundColor: const Color(0xFF2A2A2A),
+                            title: Text('Send Invoice', style: GoogleFonts.poppins(color: Colors.white)),
                             content: TextField(
                               controller: controller,
-                              keyboardType: TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(labelText: 'Amount'),
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: 'Amount',
+                                labelStyle: const TextStyle(color: Colors.white70),
+                                filled: true,
+                                fillColor: const Color(0xFF3A3A3A),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(ctx),
-                                child: const Text('Cancel'),
+                                child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
                               ),
                               ElevatedButton(
-            onPressed: () {
+                                onPressed: () {
                                   final value = double.tryParse(controller.text);
                                   if (value != null && value > 0) {
                                     Navigator.pop(ctx, value);
                                   }
                                 },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4A90E2),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
                                 child: const Text('Send'),
                               ),
                             ],
@@ -670,22 +809,28 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                         try {
                           await _bookingService.sendInvoice(bookingId: booking!.id, amount: amount);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Invoice sent to client!')),
+                            SnackBar(
+                              content: Text('Invoice sent!', style: GoogleFonts.poppins(color: Colors.white)),
+                              backgroundColor: Colors.green,
+                            ),
                           );
-                          _fetchJobsForDay(_selectedDay!); // Refresh
+                          _fetchJobsForDay(_selectedDay!, reset: true);
                         } catch (e) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed to send invoice: $e')),
+                            SnackBar(
+                              content: Text('Failed to send invoice: $e', style: GoogleFonts.poppins()),
+                              backgroundColor: Colors.red,
+                            ),
                           );
                         }
                       }
                     },
-                    icon: const Icon(Icons.receipt_long),
+                    icon: const Icon(Icons.receipt_long, size: 18),
                     label: const Text('Send Invoice'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      backgroundColor: const Color(0xFF4A90E2),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
@@ -694,19 +839,21 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              statusLabel ?? '',
+              style: GoogleFonts.poppins(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
-              child: Text(
-                statusLabel ?? '',
-                style: GoogleFonts.poppins(color: color, fontSize: 12, fontWeight: FontWeight.w500),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -715,40 +862,30 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   }
 
   Widget _buildQuickStats(BuildContext context) {
-    // Calculate earnings from completed jobs (assuming each job has a price)
     double totalEarnings = 0;
     for (final job in _jobs) {
       if (job.status.toString().toLowerCase() == 'completed') {
-        // Use amount field from Booking model
         totalEarnings += job.amount ?? 0;
       }
     }
-    
-    // Calculate average rating from completed jobs
     double averageRating = 0;
     int ratedJobs = 0;
     for (final job in _jobs) {
       if (job.status.toString().toLowerCase() == 'completed' && job.review != null) {
-        // Since there's no rating field, we'll use a placeholder
-        // In a real app, you'd fetch ratings from a separate API
-        averageRating += 4.5; // Placeholder rating
+        averageRating += 4.5; // Placeholder
         ratedJobs++;
       }
     }
     averageRating = ratedJobs > 0 ? averageRating / ratedJobs : 0;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Quick Stats',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
+          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -762,7 +899,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                 error: _todayJobsError,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
                 context,
@@ -774,7 +911,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -786,7 +923,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                 Colors.amber,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
                 context,
@@ -814,22 +951,20 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     String? error,
   }) {
     return Card(
-      elevation: 0,
+      elevation: 2,
       color: const Color(0xFF2A2A2A),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color),
+            Icon(icon, color: color, size: 28),
             const SizedBox(height: 8),
             if (isLoading)
               const SizedBox(
-                width: 24,
-                height: 24,
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
@@ -840,7 +975,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                 'Error',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: Colors.red,
                 ),
               )
@@ -848,8 +983,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
               Text(
                 value,
                 style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
                   color: color,
                 ),
               ),
@@ -858,6 +993,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
               title,
               style: GoogleFonts.poppins(
                 color: Colors.white70,
+                fontSize: 14,
               ),
             ),
             if (error != null) ...[
@@ -882,7 +1018,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     if (_isActivitiesLoading) {
       return const Padding(
         padding: EdgeInsets.all(24),
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: CircularProgressIndicator(color: Colors.white70)),
       );
     }
     if (_activitiesError != null) {
@@ -890,28 +1026,17 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Colors.red.withOpacity(0.7),
-            ),
+            Icon(Icons.error_outline, size: 48, color: Colors.red.withOpacity(0.7)),
             const SizedBox(height: 16),
             Text(
               'Error loading activities',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.red,
-              ),
+              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.red),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               _activitiesError!,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: Colors.red.withOpacity(0.7),
-              ),
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.red.withOpacity(0.7)),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -920,8 +1045,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
+                backgroundColor: const Color(0xFF4A90E2),
                 foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
@@ -936,51 +1062,34 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           children: [
             Text(
               'Recent Activity',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
             ),
             if (_activities.isNotEmpty)
               TextButton.icon(
                 onPressed: _fetchRecentActivities,
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Refresh'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                ),
+                style: TextButton.styleFrom(foregroundColor: Colors.white70),
               ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         if (_activities.isEmpty)
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                Icon(
-                  Icons.history,
-                  size: 48,
-                  color: Colors.white.withOpacity(0.3),
-                ),
+                Icon(Icons.history, size: 48, color: Colors.white.withOpacity(0.3)),
                 const SizedBox(height: 16),
                 Text(
                   'No recent activities',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white70,
-                  ),
+                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Your recent notifications and activities will appear here',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.white54,
-                  ),
+                  'Your recent notifications will appear here',
+                  style: GoogleFonts.poppins(fontSize: 14, color: Colors.white54),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -988,76 +1097,70 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           )
         else
           Card(
-            elevation: 0,
+            elevation: 2,
             color: const Color(0xFF2A2A2A),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _activities.length > 5 ? 5 : _activities.length,
-              separatorBuilder: (context, index) => const Divider(color: Colors.white24),
+              separatorBuilder: (context, index) => Divider(color: Colors.white.withOpacity(0.1)),
               itemBuilder: (context, index) {
                 final activity = _activities[index];
-                final timestamp = activity['timestamp'] != null 
-                    ? DateTime.tryParse(activity['timestamp'].toString())
-                    : null;
+                final timestamp = activity['timestamp'] != null ? DateTime.tryParse(activity['timestamp'].toString()) : null;
                 final isRead = activity['read'] == true;
-                
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: isRead 
-                        ? Colors.grey.withOpacity(0.3)
-                        : Theme.of(context).colorScheme.primary,
-                    child: Icon(
-                      _getActivityIcon(activity['type'] ?? 'notification'),
-                      color: isRead ? Colors.grey : Colors.white,
-                      size: 20,
+
+                return AnimatedOpacity(
+                  opacity: 1.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    leading: CircleAvatar(
+                      backgroundColor: isRead ? Colors.grey.withOpacity(0.3) : const Color(0xFF4A90E2),
+                      child: Icon(
+                        _getActivityIcon(activity['type'] ?? 'notification'),
+                        color: isRead ? Colors.grey : Colors.white,
+                        size: 20,
+                      ),
                     ),
-                  ),
-                  title: Text(
-                    activity['title']?.toString() ?? 'Activity',
-                    style: GoogleFonts.poppins(
-                      fontWeight: isRead ? FontWeight.w400 : FontWeight.w600,
-                      color: isRead ? Colors.white70 : Colors.white,
+                    title: Text(
+                      activity['title']?.toString() ?? 'Activity',
+                      style: GoogleFonts.poppins(
+                        fontWeight: isRead ? FontWeight.w400 : FontWeight.w600,
+                        color: isRead ? Colors.white70 : Colors.white,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (activity['description']?.toString().isNotEmpty == true) ...[
-                        Text(
-                          activity['description'].toString(),
-                          style: GoogleFonts.poppins(
-                            color: Colors.white70,
-                            fontSize: 13,
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (activity['description']?.toString().isNotEmpty == true) ...[
+                          Text(
+                            activity['description'].toString(),
+                            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
+                          const SizedBox(height: 4),
+                        ],
+                        if (timestamp != null)
+                          Text(
+                            _formatActivityTime(timestamp),
+                            style: GoogleFonts.poppins(color: Colors.white54, fontSize: 11),
+                          ),
                       ],
-                      if (timestamp != null)
-                        Text(
-                          _formatActivityTime(timestamp),
-                          style: GoogleFonts.poppins(
-                            color: Colors.white54,
-                            fontSize: 12,
+                    ),
+                    trailing: isRead
+                        ? null
+                        : Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF4A90E2),
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-                    ],
                   ),
-                  trailing: isRead 
-                      ? null 
-                      : Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
                 );
               },
             ),
@@ -1107,13 +1210,30 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   }
 }
 
+class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double minHeight;
+  final double maxHeight;
+  final Widget child;
+
+  _StickyHeaderDelegate({required this.minHeight, required this.maxHeight, required this.child});
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => child;
+
+  @override
+  double get maxExtent => maxHeight;
+
+  @override
+  double get minExtent => minHeight;
+
+  @override
+  bool shouldRebuild(_StickyHeaderDelegate oldDelegate) => true;
+}
+
 class AllBookingsScreen extends StatefulWidget {
   final List<Map<String, dynamic>> schedules;
 
-  const AllBookingsScreen({
-    super.key,
-    required this.schedules,
-  });
+  const AllBookingsScreen({super.key, required this.schedules});
 
   @override
   State<AllBookingsScreen> createState() => _AllBookingsScreenState();
@@ -1124,6 +1244,345 @@ class _AllBookingsScreenState extends State<AllBookingsScreen> {
   String _selectedStatus = 'all';
   DateTime? _startDate;
   DateTime? _endDate;
+  String _tempSearchQuery = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF1A1A1A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1A1A1A),
+        elevation: 0,
+        title: Text(
+          'All Bookings',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 20),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white70),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list, color: Colors.white70),
+            onPressed: _showFilterBottomSheet,
+          ),
+        ],
+      ),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Search bookings...',
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.white70),
+                          onPressed: () {
+                            setState(() {
+                              _searchQuery = '';
+                              _tempSearchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFF2A2A2A),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (value) {
+                  _tempSearchQuery = value;
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    if (_tempSearchQuery == value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    }
+                  });
+                },
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  if (_startDate != null || _endDate != null)
+                    Chip(
+                      label: Text(
+                        'Date: ${_startDate != null ? _formatDate(_startDate!) : 'Any'} - ${_endDate != null ? _formatDate(_endDate!) : 'Any'}',
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                      backgroundColor: Colors.white.withOpacity(0.1),
+                      deleteIcon: const Icon(Icons.close, size: 16, color: Colors.white70),
+                      onDeleted: () {
+                        setState(() {
+                          _startDate = null;
+                          _endDate = null;
+                        });
+                      },
+                    ),
+                  if (_selectedStatus != 'all')
+                    Chip(
+                      label: Text(
+                        'Status: ${_selectedStatus.toUpperCase()}',
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                      backgroundColor: Colors.white.withOpacity(0.1),
+                      deleteIcon: const Icon(Icons.close, size: 16, color: Colors.white70),
+                      onDeleted: () {
+                        setState(() {
+                          _selectedStatus = 'all';
+                        });
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final schedule = _filteredSchedules[index];
+                return AnimatedOpacity(
+                  opacity: 1.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    elevation: 2,
+                    color: const Color(0xFF2A2A2A),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(12),
+                      leading: CircleAvatar(
+                        backgroundColor: _getStatusColor(schedule['status'] as String).withOpacity(0.2),
+                        child: Icon(
+                          Icons.cleaning_services,
+                          color: _getStatusColor(schedule['status'] as String),
+                          size: 24,
+                        ),
+                      ),
+                      title: Text(
+                        schedule['title'] as String,
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 6),
+                          Text(
+                            schedule['client'] as String,
+                            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.calendar_today, size: 14, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Text(
+                                _formatDate(schedule['date'] as DateTime),
+                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.access_time, size: 14, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Text(
+                                schedule['time'] as String,
+                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on, size: 14, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  schedule['address'] as String,
+                                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(schedule['status'] as String).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          (schedule['status'] as String).toUpperCase(),
+                          style: GoogleFonts.poppins(
+                            color: _getStatusColor(schedule['status'] as String),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      onTap: () {
+                        // Navigate to booking details (unchanged)
+                      },
+                    ),
+                  ),
+                );
+              },
+              childCount: _filteredSchedules.length,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF2A2A2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Filter Bookings',
+              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('All'),
+                  selected: _selectedStatus == 'all',
+                  onSelected: (selected) {
+                    setState(() {
+                      _selectedStatus = 'all';
+                    });
+                    Navigator.pop(context);
+                  },
+                  selectedColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: const Color(0xFF3A3A3A),
+                  labelStyle: TextStyle(color: _selectedStatus == 'all' ? Colors.white : Colors.white70),
+                ),
+                ...['upcoming', 'in_progress', 'completed', 'cancelled'].map((status) => ChoiceChip(
+                      label: Text(status.toUpperCase()),
+                      selected: _selectedStatus == status,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedStatus = status;
+                        });
+                        Navigator.pop(context);
+                      },
+                      selectedColor: Colors.white.withOpacity(0.2),
+                      backgroundColor: const Color(0xFF3A3A3A),
+                      labelStyle: TextStyle(color: _selectedStatus == status ? Colors.white : Colors.white70),
+                    )),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _startDate ?? DateTime.now(),
+                        firstDate: DateTime(2024),
+                        lastDate: DateTime(2025),
+                      );
+                      if (date != null) {
+                        setState(() {
+                          _startDate = date;
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.calendar_today, color: Colors.white70),
+                    label: Text(
+                      _startDate == null ? 'Start Date' : _formatDate(_startDate!),
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _endDate ?? DateTime.now(),
+                        firstDate: DateTime(2024),
+                        lastDate: DateTime(2025),
+                      );
+                      if (date != null) {
+                        setState(() {
+                          _endDate = date;
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.calendar_today, color: Colors.white70),
+                    label: Text(
+                      _endDate == null ? 'End Date' : _formatDate(_endDate!),
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedStatus = 'all';
+                        _startDate = null;
+                        _endDate = null;
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Clear All', style: TextStyle(color: Colors.white70)),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4A90E2),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Apply'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
@@ -1160,358 +1619,11 @@ class _AllBookingsScreenState extends State<AllBookingsScreen> {
     return widget.schedules.where((schedule) {
       final matchesSearch = schedule['title'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
           schedule['client'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
-      
       final matchesStatus = _selectedStatus == 'all' || schedule['status'] == _selectedStatus;
-      
       final date = schedule['date'] as DateTime;
       final matchesDateRange = (_startDate == null || date.isAfter(_startDate!)) &&
           (_endDate == null || date.isBefore(_endDate!));
-
       return matchesSearch && matchesStatus && matchesDateRange;
     }).toList();
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1A1A1A),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          'All Bookings',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list, color: Colors.white70),
-            onPressed: _showFilterDialog,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Search bookings...',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                prefixIcon: const Icon(Icons.search, color: Colors.white70),
-                filled: true,
-                fillColor: const Color(0xFF2A2A2A),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-          ),
-          if (_startDate != null || _endDate != null || _selectedStatus != 'all')
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 8,
-                children: [
-                  if (_startDate != null || _endDate != null)
-                    Chip(
-                      label: Text(
-                        'Date: ${_startDate != null ? _formatDate(_startDate!) : 'Any'} - ${_endDate != null ? _formatDate(_endDate!) : 'Any'}',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      deleteIcon: const Icon(Icons.close, color: Colors.white70),
-                      onDeleted: () {
-                        setState(() {
-                          _startDate = null;
-                          _endDate = null;
-                        });
-                      },
-                    ),
-                  if (_selectedStatus != 'all')
-                    Chip(
-                      label: Text(
-                        'Status: ${_selectedStatus.toUpperCase()}',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      deleteIcon: const Icon(Icons.close, color: Colors.white70),
-                      onDeleted: () {
-                        setState(() {
-                          _selectedStatus = 'all';
-                        });
-                      },
-                    ),
-                ],
-              ),
-            ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _filteredSchedules.length,
-              itemBuilder: (context, index) {
-                final schedule = _filteredSchedules[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  elevation: 0,
-                  color: const Color(0xFF2A2A2A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(schedule['status'] as String).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.cleaning_services,
-                        color: _getStatusColor(schedule['status'] as String),
-                      ),
-                    ),
-                    title: Text(
-                      schedule['title'] as String,
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 4),
-                        Text(
-                          schedule['client'] as String,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white70,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 14,
-                              color: Colors.white70,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              _formatDate(schedule['date'] as DateTime),
-                              style: GoogleFonts.poppins(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 14,
-                              color: Colors.white70,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              schedule['time'] as String,
-                              style: GoogleFonts.poppins(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: Colors.white70,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                schedule['address'] as String,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(schedule['status'] as String).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        (schedule['status'] as String).toUpperCase(),
-                        style: GoogleFonts.poppins(
-                          color: _getStatusColor(schedule['status'] as String),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    onTap: () {
-                      // TODO: Navigate to booking details
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showFilterDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2A2A),
-        title: Text(
-          'Filter Bookings',
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              value: _selectedStatus,
-              decoration: InputDecoration(
-                labelText: 'Status',
-                labelStyle: const TextStyle(color: Colors.white70),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              dropdownColor: const Color(0xFF2A2A2A),
-              style: const TextStyle(color: Colors.white),
-              items: [
-                DropdownMenuItem(
-                  value: 'all',
-                  child: Text('All Statuses'),
-                ),
-                DropdownMenuItem(
-                  value: 'upcoming',
-                  child: Text('Upcoming'),
-                ),
-                DropdownMenuItem(
-                  value: 'in_progress',
-                  child: Text('In Progress'),
-                ),
-                DropdownMenuItem(
-                  value: 'completed',
-                  child: Text('Completed'),
-                ),
-                DropdownMenuItem(
-                  value: 'cancelled',
-                  child: Text('Cancelled'),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedStatus = value!;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: _startDate ?? DateTime.now(),
-                        firstDate: DateTime(2024),
-                        lastDate: DateTime(2025),
-                      );
-                      if (date != null) {
-                        setState(() {
-                          _startDate = date;
-                        });
-                      }
-                    },
-                    icon: const Icon(Icons.calendar_today),
-                    label: Text(_startDate == null ? 'Start Date' : _formatDate(_startDate!)),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: _endDate ?? DateTime.now(),
-                        firstDate: DateTime(2024),
-                        lastDate: DateTime(2025),
-                      );
-                      if (date != null) {
-                        setState(() {
-                          _endDate = date;
-                        });
-                      }
-                    },
-                    icon: const Icon(Icons.calendar_today),
-                    label: Text(_endDate == null ? 'End Date' : _formatDate(_endDate!)),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _selectedStatus = 'all';
-                _startDate = null;
-                _endDate = null;
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Clear All'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-} 
+}

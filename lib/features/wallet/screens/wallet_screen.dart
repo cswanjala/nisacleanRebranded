@@ -11,7 +11,6 @@ import 'package:intl/intl.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:shimmer/shimmer.dart';
 import 'package:lottie/lottie.dart';
-import 'package:flutter_vibrate/flutter_vibrate.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -356,7 +355,6 @@ class _WalletScreenState extends State<WalletScreen>
   }
 
   void _showDepositBottomSheet() async {
-    Vibrate.feedback(FeedbackType.light);
     final colorScheme = Theme.of(context).colorScheme;
     final controller = TextEditingController();
     bool isLoading = false;
@@ -417,7 +415,6 @@ class _WalletScreenState extends State<WalletScreen>
                               final value = double.tryParse(controller.text);
                               if (value == null || value <= 0) {
                                 setModalState(() => errorMsg = 'Enter a valid amount');
-                                Vibrate.feedback(FeedbackType.error);
                                 return;
                               }
                               setModalState(() {
@@ -470,7 +467,6 @@ class _WalletScreenState extends State<WalletScreen>
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['success'] == true) {
         final customerMsg = data['data']?['stkResponse']?['CustomerMessage'] ?? data['message'] ?? 'Deposit initiated.';
-        Vibrate.feedback(FeedbackType.success);
         await showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -495,7 +491,6 @@ class _WalletScreenState extends State<WalletScreen>
         return true;
       } else {
         final msg = data['message'] ?? 'Failed to deposit.';
-        Vibrate.feedback(FeedbackType.error);
         await showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -519,7 +514,6 @@ class _WalletScreenState extends State<WalletScreen>
         return false;
       }
     } catch (e) {
-      Vibrate.feedback(FeedbackType.error);
       await showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
