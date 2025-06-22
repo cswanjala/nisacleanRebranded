@@ -316,6 +316,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       'time': b.time,
                       'amount': b.amount,
                       'status': b.status.toString().split('.').last,
+                      'worker': b.worker != null ? b.worker!.toJson() : null,
+                      'providerName': b.worker?.name ?? '',
                     })
                 .toList(),
           ),

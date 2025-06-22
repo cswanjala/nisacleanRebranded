@@ -9,6 +9,9 @@ import 'package:intl/intl.dart';
 import 'dart:ui';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nisacleanv1/core/bloc/auth/auth_bloc.dart';
+import 'package:nisacleanv1/core/bloc/auth/auth_state.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
   final Booking booking;
@@ -95,7 +98,56 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _ActionBar(status: status, booking: widget.booking),
+      bottomNavigationBar: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, authState) {
+          final isClient = authState.userType == UserType.client;
+          // DEBUG: Show userType and status
+          print('[DEBUG] BookingDetailsScreen: userType = \\${authState.userType}, status = \\"$status\\"');
+          if (status == 'pending' && isClient) {
+            return Container(
+              color: colorScheme.surface,
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Booking is awaiting invoice from the service provider.',
+                      style: GoogleFonts.poppins(color: Colors.orange, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          } else if (status == 'confirmation' && isClient) {
+            return Container(
+              color: colorScheme.surface,
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // TODO: Implement payment action
+                      },
+                      icon: const Icon(Icons.payment),
+                      label: Text('Pay KES $formattedAmount'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
       backgroundColor: colorScheme.background,
     );
   }

@@ -110,12 +110,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (isAuthenticated) {
         final user = await _authService.getUser();
         final token = await _authService.getToken();
-        
+        String? role = user?['role']?.toString()?.toLowerCase()?.trim();
         UserType userType = UserType.client;
-        if (user?['role'] == 'worker') {
+        if (role == 'worker') {
           userType = UserType.serviceProvider;
+        } else if (role == 'client') {
+          userType = UserType.client;
         }
-        
+        // DEBUG: Print loaded role and userType
+        print('[DEBUG] AuthBloc: loaded role = '
+            '\\"${user?['role']}\\", userType = $userType');
         // Fetch real user profile
         final profile = await _authService.fetchUserProfile();
         print('Fetched user profile: ' + profile.toString());
@@ -131,7 +135,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(const AuthState());
       }
     } catch (e) {
-    emit(const AuthState());
+      emit(const AuthState());
     }
   }
 

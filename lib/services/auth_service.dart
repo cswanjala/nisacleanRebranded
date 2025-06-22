@@ -201,6 +201,8 @@ class AuthService {
   // Helper methods for token management
   Future<void> _saveAuthData(String token, Map<String, dynamic> user) async {
     final prefs = await SharedPreferences.getInstance();
+    // DEBUG: Print what is being saved
+    print('[DEBUG] _saveAuthData: user = ' + jsonEncode(user));
     await prefs.setString(tokenKey, token);
     await prefs.setString(userKey, jsonEncode(user));
   }
@@ -220,7 +222,10 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     final userStr = prefs.getString(userKey);
     if (userStr == null) return null;
-    return jsonDecode(userStr);
+    final user = jsonDecode(userStr);
+    // DEBUG: Print what is being loaded
+    print('[DEBUG] getUser: loaded user = ' + userStr);
+    return user;
   }
 
   Future<bool> isAuthenticated() async {

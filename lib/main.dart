@@ -11,6 +11,7 @@ import 'package:nisacleanv1/features/auth/screens/login_screen.dart';
 import 'package:nisacleanv1/features/worker/screens/worker_main_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nisacleanv1/core/bloc/auth/auth_bloc.dart';
+import 'package:nisacleanv1/core/bloc/auth/auth_event.dart';
 
 void main() {
   runApp(const MyApp());
@@ -54,6 +55,17 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   
+  @override
+  void initState() {
+    super.initState();
+    // Ensure AuthBloc restores userType on app start
+    Future.microtask(() {
+      if (mounted) {
+        context.read<AuthBloc>().add(CheckAuthStatus());
+      }
+    });
+  }
+
   final List<Widget> _screens = [
     const HomeScreen(),
     const BookingsScreen(),

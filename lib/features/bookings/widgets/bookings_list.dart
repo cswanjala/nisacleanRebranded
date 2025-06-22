@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nisacleanv1/features/bookings/widgets/booking_details_sheet.dart';
+import 'package:nisacleanv1/features/bookings/screens/booking_details_screen.dart';
+import 'package:nisacleanv1/features/bookings/models/booking.dart';
 
 class BookingsList extends StatelessWidget {
   final List<Map<String, dynamic>> bookings;
@@ -17,8 +19,19 @@ class BookingsList extends StatelessWidget {
       itemCount: bookings.length,
       itemBuilder: (context, index) {
         final booking = bookings[index];
+        final providerName = booking['providerName'] ?? booking['worker']?['name'] ?? '';
         return ListTile(
-          onTap: () => _showBookingDetails(context, booking),
+          onTap: () {
+            // Navigate to BookingDetailsScreen (full screen)
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BookingDetailsScreen(
+                  booking: Booking.fromJson(booking),
+                ),
+              ),
+            );
+          },
           leading: Container(
             width: 48,
             height: 48,
@@ -37,11 +50,24 @@ class BookingsList extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          subtitle: Text(
-            '${booking['date']} at ${booking['time']}',
-            style: TextStyle(
-              color: Colors.grey[600],
-            ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${booking['date']} at ${booking['time']}',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                ),
+              ),
+              if (providerName.isNotEmpty)
+                Text(
+                  'Provider: $providerName',
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 12,
+                  ),
+                ),
+            ],
           ),
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
