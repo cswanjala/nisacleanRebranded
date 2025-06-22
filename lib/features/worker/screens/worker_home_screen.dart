@@ -39,6 +39,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   String? _completedJobsError;
   int _currentBookingPage = 0;
   static const int _bookingsPerPage = 3;
+  String? _selectedStatusFilter; // null = all
 
   @override
   void initState() {
@@ -317,9 +318,14 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     }
   }
 
+  List<Booking> get _filteredBookings {
+    if (_selectedStatusFilter == null) return _jobs;
+    return _jobs.where((b) => b.status.toString().split('.').last == _selectedStatusFilter).toList();
+  }
   List<Booking> get _pagedBookings {
+    final filtered = _filteredBookings;
     final start = _currentBookingPage * _bookingsPerPage;
-    return _jobs.skip(start).take(_bookingsPerPage).toList();
+    return filtered.skip(start).take(_bookingsPerPage).toList();
   }
 
   @override
@@ -554,7 +560,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
       );
     }
     final dayJobs = _pagedBookings;
-    if (dayJobs.isEmpty) {
+    if (_filteredBookings.isEmpty) {
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -581,6 +587,42 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     return SliverToBoxAdapter(
       child: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('All'),
+                  selected: _selectedStatusFilter == null,
+                  onSelected: (selected) {
+                    setState(() {
+                      _selectedStatusFilter = null;
+                      _currentBookingPage = 0;
+                    });
+                    _fetchJobsForDay(_selectedDay!, reset: true);
+                  },
+                ),
+                ...[
+                  {'label': 'Pending', 'value': 'pending'},
+                  {'label': 'Awaiting Confirmation', 'value': 'confirmation'},
+                  {'label': 'In Progress', 'value': 'inprogress'},
+                  {'label': 'Completed', 'value': 'completed'},
+                  {'label': 'Cancelled', 'value': 'cancelled'},
+                ].map((status) => ChoiceChip(
+                  label: Text(status['label']!),
+                  selected: _selectedStatusFilter == status['value'],
+                  onSelected: (selected) {
+                    setState(() {
+                      _selectedStatusFilter = status['value'];
+                      _currentBookingPage = 0;
+                    });
+                    _fetchJobsForDay(_selectedDay!, reset: true);
+                  },
+                )),
+              ],
+            ),
+          ),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -656,7 +698,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
               ),
               const SizedBox(width: 16),
               ElevatedButton(
-                onPressed: ((_currentBookingPage + 1) * _bookingsPerPage) < _jobs.length
+                onPressed: ((_currentBookingPage + 1) * _bookingsPerPage) < _filteredBookings.length
                     ? () {
                         setState(() {
                           _currentBookingPage++;
