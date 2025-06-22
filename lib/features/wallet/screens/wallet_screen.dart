@@ -38,11 +38,12 @@ class _WalletScreenState extends State<WalletScreen>
   int _pendingCount = 0;
   int _txCount = 0;
 
-  String _searchQuery = '';
   String _selectedType = 'All';
   final List<String> _types = ['All', 'Deposit', 'Escrow', 'Payment'];
 
   bool _isDepositing = false;
+
+  DateTime? _selectedDate;
 
   @override
   void initState() {
@@ -591,18 +592,21 @@ class _WalletScreenState extends State<WalletScreen>
       return _buildLottieEmpty('No transactions found.');
     }
 
-    // --- Search and Filter UI ---
+    // --- Filter UI ---
     final filteredTxs = _transactions.where((tx) {
-      final matchesQuery = _searchQuery.isEmpty ||
-          (tx['type']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-          (tx['status']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-          (tx['reference']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-          (tx['description']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
       final matchesType = _selectedType == 'All' ||
           (_selectedType == 'Deposit' && tx['type'] == 'deposit') ||
           (_selectedType == 'Escrow' && tx['type'] == 'escrow') ||
           (_selectedType == 'Payment' && tx['type'] == 'payment');
-      return matchesQuery && matchesType;
+      final matchesDate = _selectedDate == null ||
+        (() {
+          final createdAt = tx['createdAt']?.toString();
+          if (createdAt == null) return false;
+          final txDate = DateTime.tryParse(createdAt);
+          if (txDate == null) return false;
+          return txDate.year == _selectedDate!.year && txDate.month == _selectedDate!.month && txDate.day == _selectedDate!.day;
+        })();
+      return matchesType && matchesDate;
     }).toList();
 
     // Group filtered transactions by date
@@ -614,62 +618,115 @@ class _WalletScreenState extends State<WalletScreen>
 
     return Column(
       children: [
-        // Search Bar
+        // Filter Chips Row (Type chips only)
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Search transactions...',
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              fillColor: colorScheme.surface,
-              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: SizedBox(
+            height: 38,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _types.length,
+              separatorBuilder: (context, i) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final type = _types[i];
+                final isSelected = _selectedType == type;
+                return ChoiceChip(
+                  label: Text(type),
+                  selected: isSelected,
+                  onSelected: (_) {
+                    setState(() {
+                      _selectedType = type;
+                    });
+                  },
+                  selectedColor: colorScheme.primary,
+                  backgroundColor: colorScheme.surface,
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : colorScheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
+                );
+              },
             ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
           ),
         ),
-        // Filter Chips (Type)
-        SizedBox(
-          height: 38,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            itemCount: _types.length,
-            separatorBuilder: (context, i) => const SizedBox(width: 8),
-            itemBuilder: (context, i) {
-              final type = _types[i];
-              final isSelected = _selectedType == type;
-              return ChoiceChip(
-                label: Text(type),
-                selected: isSelected,
-                onSelected: (_) {
-                  setState(() {
-                    _selectedType = type;
-                  });
-                },
-                selectedColor: colorScheme.primary,
-                backgroundColor: colorScheme.surface,
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : colorScheme.onSurface,
-                  fontWeight: FontWeight.w500,
+        // Floating Date Filter Button
+        Padding(
+          padding: const EdgeInsets.only(right: 18, top: 2, bottom: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Material(
+                elevation: 3,
+                borderRadius: BorderRadius.circular(24),
+                color: Colors.transparent,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.primary.withOpacity(0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate ?? DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _selectedDate = picked;
+                        });
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.calendar_today, size: 18, color: colorScheme.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            _selectedDate == null
+                                ? 'Date'
+                                : DateFormat('d MMM yyyy').format(_selectedDate!),
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (_selectedDate != null) ...[
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedDate = null;
+                                });
+                              },
+                              child: Icon(Icons.close, size: 18, color: colorScheme.primary),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 8),
         // Transaction List
         Expanded(
           child: filteredTxs.isEmpty
-              ? _buildLottieEmpty('No transactions found for your search/filter.')
+              ? _buildLottieEmpty('No transactions found for your filter.')
               : ListView(
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
                   children: grouped.entries.map((entry) {
@@ -757,7 +814,7 @@ class _WalletScreenState extends State<WalletScreen>
                 color: colorScheme.primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text(
+          child: Text(
                 status,
                 style: TextStyle(
                   color: colorScheme.primary,
