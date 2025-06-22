@@ -1183,16 +1183,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         ...recentBookings.map((booking) => Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _buildBookingCard(
-            context,
-            booking['service'],
-            booking['date'],
-            booking['status'],
-            _getStatusColor(booking['status']),
-            onTap: () => _showBookingDetails(booking),
-          ),
-        )).toList(),
+        padding: const EdgeInsets.only(bottom: 16),
+        child: _buildBookingCard(
+          context,
+          booking['service'],
+          booking['date'],
+          booking['status'],
+          _getStatusColor(booking['status']),
+          onTap: () => _showBookingDetails(booking),
+        ),
+      )).toList(),
       ],
     );
   }

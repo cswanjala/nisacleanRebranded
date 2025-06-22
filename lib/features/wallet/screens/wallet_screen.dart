@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:shimmer/shimmer.dart';
 import 'package:lottie/lottie.dart';
+import 'package:flutter_vibrate/flutter_vibrate.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -39,7 +40,9 @@ class _WalletScreenState extends State<WalletScreen>
 
   String _searchQuery = '';
   String _selectedType = 'All';
-  final List<String> _types = ['All', 'Deposit', 'Withdrawal', 'Payment'];
+  final List<String> _types = ['All', 'Deposit', 'Escrow', 'Payment'];
+
+  bool _isDepositing = false;
 
   @override
   void initState() {
@@ -171,10 +174,10 @@ class _WalletScreenState extends State<WalletScreen>
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: Column(
+          child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                                 Text(
                                   'Hello!',
                                   style: TextStyle(
@@ -185,9 +188,9 @@ class _WalletScreenState extends State<WalletScreen>
                                 ),
                                 Text(
                                   _isProfileLoading ? 'Loading...' : (_profileError != null ? 'User' : _phoneNumber ?? '-'),
-                                  style: TextStyle(
+                    style: TextStyle(
                                     fontSize: 18,
-                                    fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                                     color: colorScheme.onBackground,
                                   ),
                                 ),
@@ -235,9 +238,9 @@ class _WalletScreenState extends State<WalletScreen>
                   ],
                 ),
               ),
-            ),
-          ],
-        ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -330,67 +333,214 @@ class _WalletScreenState extends State<WalletScreen>
   }
 
   Widget _buildActionRow(ColorScheme colorScheme) {
+    // Small, pill-shaped, right-aligned button
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        _buildActionButton(
-          colorScheme,
-          icon: Icons.add,
-          label: 'Add',
-          onTap: () {},
-        ),
-        _buildActionButton(
-          colorScheme,
-          icon: Icons.upload,
-          label: 'Withdraw',
-          onTap: () {},
-        ),
-        _buildActionButton(
-          colorScheme,
-          icon: Icons.compare_arrows,
-          label: 'Transfer',
-          onTap: () {},
+        ElevatedButton.icon(
+          icon: const Icon(Icons.mobile_friendly, size: 20),
+          label: const Text('Deposit'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colorScheme.primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
+            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            shape: StadiumBorder(),
+            elevation: 2,
+          ),
+          onPressed: _isDepositing ? null : _showDepositBottomSheet,
         ),
       ],
     );
   }
 
-  Widget _buildActionButton(ColorScheme colorScheme, {required IconData icon, required String label, required VoidCallback onTap}) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 70,
-          margin: const EdgeInsets.symmetric(horizontal: 6),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.primary.withOpacity(0.08),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 28, color: colorScheme.primary),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: colorScheme.primary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
+  void _showDepositBottomSheet() async {
+    Vibrate.feedback(FeedbackType.light);
+    final colorScheme = Theme.of(context).colorScheme;
+    final controller = TextEditingController();
+    bool isLoading = false;
+    String? errorMsg;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24, right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Icon(Icons.mobile_friendly, color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text('Deposit to Mpesa', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Amount (KES)',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      errorText: errorMsg,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                              final value = double.tryParse(controller.text);
+                              if (value == null || value <= 0) {
+                                setModalState(() => errorMsg = 'Enter a valid amount');
+                                Vibrate.feedback(FeedbackType.error);
+                                return;
+                              }
+                              setModalState(() {
+                                isLoading = true;
+                                errorMsg = null;
+                              });
+                              final result = await _depositToMpesaModal(value, ctx, setModalState);
+                              if (result) Navigator.pop(ctx);
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Deposit'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
+  }
+
+  Future<bool> _depositToMpesaModal(double amount, BuildContext ctx, void Function(void Function()) setModalState) async {
+    setModalState(() => _isDepositing = true);
+    final colorScheme = Theme.of(context).colorScheme;
+    try {
+      final token = await AuthService().getToken();
+      if (token == null) throw 'Not authenticated';
+      final phone = _phoneNumber;
+      if (phone == null || phone.isEmpty) throw 'Phone number not found.';
+      final response = await http.post(
+        Uri.parse('${WalletService().baseUrl}/transaction/deposit/request'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'phone': phone,
+          'amount': amount,
+        }),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        final customerMsg = data['data']?['stkResponse']?['CustomerMessage'] ?? data['message'] ?? 'Deposit initiated.';
+        Vibrate.feedback(FeedbackType.success);
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Lottie.network('https://assets2.lottiefiles.com/packages/lf20_jtbfg2nb.json', width: 80, height: 80, repeat: false),
+                const SizedBox(height: 12),
+                Text(customerMsg, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        _fetchBalance();
+        _fetchTransactions();
+        return true;
+      } else {
+        final msg = data['message'] ?? 'Failed to deposit.';
+        Vibrate.feedback(FeedbackType.error);
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+                  children: [
+                Lottie.network('https://assets2.lottiefiles.com/packages/lf20_jtbfg2nb.json', width: 80, height: 80, repeat: false),
+                const SizedBox(height: 12),
+                Text(msg, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.red)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        setModalState(() => _isDepositing = false);
+        return false;
+      }
+    } catch (e) {
+      Vibrate.feedback(FeedbackType.error);
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Lottie.network('https://assets2.lottiefiles.com/packages/lf20_jtbfg2nb.json', width: 80, height: 80, repeat: false),
+              const SizedBox(height: 12),
+              Text('Error: $e', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.red)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      setModalState(() => _isDepositing = false);
+      return false;
+    }
   }
 
   Widget _buildTabs(ColorScheme colorScheme) {
@@ -450,7 +600,7 @@ class _WalletScreenState extends State<WalletScreen>
           (tx['description']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
       final matchesType = _selectedType == 'All' ||
           (_selectedType == 'Deposit' && tx['type'] == 'deposit') ||
-          (_selectedType == 'Withdrawal' && tx['type'] == 'withdrawal') ||
+          (_selectedType == 'Escrow' && tx['type'] == 'escrow') ||
           (_selectedType == 'Payment' && tx['type'] == 'payment');
       return matchesQuery && matchesType;
     }).toList();
@@ -486,7 +636,7 @@ class _WalletScreenState extends State<WalletScreen>
             },
           ),
         ),
-        // Filter Chips
+        // Filter Chips (Type)
         SizedBox(
           height: 38,
           child: ListView.separated(
@@ -548,9 +698,21 @@ class _WalletScreenState extends State<WalletScreen>
   }
 
   Widget _buildTransactionCard(Map<String, dynamic> tx, ColorScheme colorScheme) {
-    final isDeposit = tx['type'] == 'deposit';
+    final direction = tx['direction']?.toString();
+    final isCredit = direction == 'credit';
+    final isDebit = direction == 'debit';
     final amount = (tx['amount'] as num).toDouble();
     final status = tx['status']?.toString().split('.').last ?? '-';
+    final paidTo = tx['paidTo']?['name'];
+    final paidBy = tx['paidBy']?['name'];
+    String? partyLabel;
+    if (isDebit && paidTo != null) {
+      partyLabel = 'To: $paidTo';
+    } else if (isCredit && paidBy != null) {
+      partyLabel = 'From: $paidBy';
+    }
+    final type = tx['type']?.toString();
+    String title = type != null ? type[0].toUpperCase() + type.substring(1) : 'Transaction';
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -558,19 +720,32 @@ class _WalletScreenState extends State<WalletScreen>
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isDeposit ? Colors.green.withOpacity(0.15) : Colors.red.withOpacity(0.15),
-          child: Icon(isDeposit ? Icons.arrow_downward : Icons.arrow_upward, color: isDeposit ? Colors.green : Colors.red),
+          backgroundColor: isCredit ? Colors.green.withOpacity(0.15) : Colors.red.withOpacity(0.15),
+          child: Icon(isCredit ? Icons.arrow_downward : Icons.arrow_upward, color: isCredit ? Colors.green : Colors.red),
         ),
-        title: Text(isDeposit ? 'Deposit' : 'Withdrawal', style: TextStyle(fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
+            if (partyLabel != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2.0),
+                child: Text(
+                  partyLabel,
+                  style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withOpacity(0.7)),
+                ),
+              ),
+          ],
+        ),
         subtitle: Text(_formatTime(tx['createdAt']), style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7))),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              (isDeposit ? '+' : '-') + 'KES ' + amount.toStringAsFixed(2),
+              (isCredit ? '+' : '-') + 'KES ' + amount.toStringAsFixed(2),
               style: TextStyle(
-                color: isDeposit ? Colors.green : Colors.red,
+                color: isCredit ? Colors.green : Colors.red,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
@@ -636,9 +811,9 @@ class _WalletScreenState extends State<WalletScreen>
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 16),
-        child: Column(
+      child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+        children: [
             Lottie.network(
               'https://assets2.lottiefiles.com/packages/lf20_0yfsb3a1.json',
               width: 80,
@@ -647,23 +822,23 @@ class _WalletScreenState extends State<WalletScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              "Export your full transaction history.",
+            "Export your full transaction history.",
               style: TextStyle(fontSize: 15, color: colorScheme.onSurface.withOpacity(0.7)),
-            ),
+          ),
             const SizedBox(height: 18),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
                 backgroundColor: colorScheme.primary,
-                foregroundColor: Colors.white,
+              foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () {},
-              icon: const Icon(Icons.download),
-              label: const Text('Export Statement'),
             ),
-          ],
-        ),
+            onPressed: () {},
+            icon: const Icon(Icons.download),
+            label: const Text('Export Statement'),
+          ),
+        ],
+      ),
       ),
     );
   }

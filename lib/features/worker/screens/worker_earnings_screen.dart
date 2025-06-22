@@ -121,20 +121,20 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                   color: Theme.of(context).colorScheme.primary,
                   backgroundColor: const Color(0xFF2A2A2A),
                   child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildEarningsHeader(context),
-                        const SizedBox(height: 24),
-                        _buildEarningsSummary(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildEarningsHeader(context),
+            const SizedBox(height: 24),
+            _buildEarningsSummary(context),
                         const SizedBox(height: 24),
                         _buildBookingsPerMonth(context),
-                        const SizedBox(height: 24),
-                        _buildEarningsHistory(context),
-                      ],
+            const SizedBox(height: 24),
+            _buildEarningsHistory(context),
+          ],
                     ),
-                  ),
-                ),
+        ),
+      ),
     );
   }
 
@@ -177,14 +177,14 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
             children: [
               Icon(Icons.star, color: Colors.amber, size: 28),
               const SizedBox(width: 8),
-              Text(
+                  Text(
                 'Rating: $rating',
-                style: GoogleFonts.poppins(
+                    style: GoogleFonts.poppins(
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
               const Spacer(),
               Text(
                 'Active: $daysActive days',
@@ -297,14 +297,14 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+            children: [
+              Text(
             'Revenue & Bookings Trends',
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
           ),
           const SizedBox(height: 16),
           _buildTrendRow('Today', todayRevenue, todayRevenueYesterday, todayRevenueChange, todayBookings, todayBookingsYesterday, todayBookingsChange),
@@ -530,11 +530,11 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
               ),
             )
           else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
               itemCount: _transactions.length > 5 ? 5 : _transactions.length,
-              itemBuilder: (context, index) {
+            itemBuilder: (context, index) {
                 final transaction = _transactions[index];
                 final amount = (transaction['amount'] as num?)?.toDouble() ?? 0.0;
                 final type = transaction['type']?.toString() ?? '';
@@ -552,45 +552,45 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                     formattedDate = createdAt.split('T').first;
                   }
                 }
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
                   elevation: 2,
                   color: const Color(0xFF232323),
-                  shape: RoundedRectangleBorder(
+                shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Padding(
+                ),
+                child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Row(
+                  child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
                             color: _getWorkerTransactionIconColor(type, direction).withOpacity(0.12),
                             borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(
+                        ),
+                        child: Icon(
                             _getWorkerTransactionIcon(type, direction),
                             color: _getWorkerTransactionIconColor(type, direction),
                             size: 22,
                           ),
                         ),
                         const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                               Row(
                                 children: [
                                   Flexible(
                                     child: Text(
                                       _getWorkerTransactionTitle(type, direction),
-                                      style: GoogleFonts.poppins(
+                              style: GoogleFonts.poppins(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 13,
-                                        color: Colors.white,
-                                      ),
+                                color: Colors.white,
+                              ),
                                     ),
                                   ),
                                   if (booking.isNotEmpty) ...[
@@ -598,7 +598,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                                     Flexible(
                                       child: Text(
                                         'Booking: $booking',
-                                        style: GoogleFonts.poppins(
+                              style: GoogleFonts.poppins(
                                           color: Colors.white54,
                                           fontSize: 11,
                                         ),
@@ -606,58 +606,58 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                                     ),
                                   ],
                                 ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                formattedDate,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
+                            ),
+                            const SizedBox(height: 2),
                             Text(
-                              'KES ${amount.toStringAsFixed(2)}',
+                                formattedDate,
                               style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.bold,
+                                color: Colors.white70,
+                                  fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                        const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                              'KES ${amount.toStringAsFixed(2)}',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
                                 color: _getWorkerTransactionAmountColor(type, direction),
                                 fontSize: 14,
                               ),
                             ),
                             const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
+                          Container(
+                            padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
                                 vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
+                            ),
+                            decoration: BoxDecoration(
                                 color: _getStatusColor(status).withOpacity(0.13),
                                 borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
+                            ),
+                            child: Text(
                                 status.toUpperCase(),
-                                style: GoogleFonts.poppins(
+                              style: GoogleFonts.poppins(
                                   color: _getStatusColor(status),
-                                  fontSize: 11,
+                                fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.5,
-                                ),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

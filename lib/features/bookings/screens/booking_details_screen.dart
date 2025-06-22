@@ -102,64 +102,64 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
             const SizedBox(height: 24),
             _AnimatedSection(
               child: _GlassCard(
-                child: Row(
-                  children: [
+              child: Row(
+                children: [
                     Icon(Icons.cleaning_services, color: colorScheme.primary, size: 28),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Text(
                         widget.booking.service,
                         style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 20, color: colorScheme.onSurface),
-                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
               ),
             ),
             const SizedBox(height: 18),
             _AnimatedSection(
               child: _GlassCard(
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: colorScheme.primary,
-                      child: Text(initials, style: GoogleFonts.poppins(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
-                      radius: 22,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(providerName, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16, color: colorScheme.onSurface)),
-                          Text('Service Provider', style: GoogleFonts.poppins(fontSize: 13, color: colorScheme.onSurface.withOpacity(0.6))),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: colorScheme.primary,
+            child: Text(initials, style: GoogleFonts.poppins(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
+            radius: 22,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+                Text(providerName, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16, color: colorScheme.onSurface)),
+                Text('Service Provider', style: GoogleFonts.poppins(fontSize: 13, color: colorScheme.onSurface.withOpacity(0.6))),
+              ],
+            ),
+          ),
+        ],
+      ),
               ),
             ),
             const SizedBox(height: 18),
             _AnimatedSection(
               child: _GlassCard(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      children: [
-                        Icon(Icons.location_on, color: colorScheme.secondary, size: 22),
-                        const SizedBox(width: 12),
-                        Expanded(
+        children: [
+          Icon(Icons.location_on, color: colorScheme.secondary, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
                           child: Text(address, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
                         ),
                       ],
                     ),
-                    if (lat != null && lng != null)
-                      Padding(
+                if (lat != null && lng != null)
+                  Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12),
                           child: SizedBox(
                             height: 120,
                             child: GoogleMap(
@@ -177,53 +177,53 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                               myLocationButtonEnabled: false,
                               liteModeEnabled: true,
                             ),
-                          ),
-                        ),
-                      ),
-                  ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
+            ),
+          ),
             ),
             const SizedBox(height: 18),
             _AnimatedSection(
               child: _GlassCard(
-                child: Row(
-                  children: [
-                    Icon(Icons.calendar_today, color: colorScheme.secondary, size: 20),
-                    const SizedBox(width: 8),
+      child: Row(
+      children: [
+          Icon(Icons.calendar_today, color: colorScheme.secondary, size: 20),
+          const SizedBox(width: 8),
                     Text(widget.booking.date, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
-                    const SizedBox(width: 16),
-                    Icon(Icons.access_time, color: colorScheme.secondary, size: 20),
-                    const SizedBox(width: 8),
+          const SizedBox(width: 16),
+          Icon(Icons.access_time, color: colorScheme.secondary, size: 20),
+          const SizedBox(width: 8),
                     Text(widget.booking.time, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
-                  ],
-                ),
+        ],
+      ),
               ),
             ),
             if (widget.booking.notes.isNotEmpty) ...[
               const SizedBox(height: 18),
               _AnimatedSection(
                 child: _GlassCard(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: colorScheme.secondary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 4,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colorScheme.secondary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
                           widget.booking.notes,
-                          style: GoogleFonts.poppins(fontSize: 15, fontStyle: FontStyle.italic, color: colorScheme.onSurface.withOpacity(0.8)),
-                        ),
-                      ),
-                    ],
-                  ),
+              style: GoogleFonts.poppins(fontSize: 15, fontStyle: FontStyle.italic, color: colorScheme.onSurface.withOpacity(0.8)),
+            ),
+          ),
+        ],
+      ),
                 ),
               ),
             ],
@@ -238,12 +238,12 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                     const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
+                decoration: BoxDecoration(
                         color: colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                       child: Text(_getPaymentStatus(status), style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: colorScheme.onSecondaryContainer, fontSize: 13)),
-                    ),
+                  ),
                   ],
                 ),
               ),
@@ -259,7 +259,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           print('[DEBUG] BookingDetailsScreen: userType = \\${authState.userType}, status = \\"$status\\"');
           if (status == 'pending' && isClient) {
             return _ActionBar(
-              color: colorScheme.surface,
+          color: colorScheme.surface,
               child: Row(
                 children: [
                   const Icon(Icons.info_outline, color: Colors.orange),
@@ -288,14 +288,14 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         textStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
                   ),
-                ],
+                ),
               ),
-            );
-          }
-          return const SizedBox.shrink();
+                ],
+        ),
+      );
+    }
+    return const SizedBox.shrink();
         },
       ),
       backgroundColor: colorScheme.background,
@@ -388,22 +388,22 @@ class _GlassCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.surface.withOpacity(0.85),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withOpacity(0.07),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
+        child: Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface.withOpacity(0.85),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withOpacity(0.07),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+            border: Border.all(
+              color: colorScheme.outline.withOpacity(0.08),
+              width: 1.2,
             ),
-          ],
-          border: Border.all(
-            color: colorScheme.outline.withOpacity(0.08),
-            width: 1.2,
           ),
-        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: child,
@@ -489,14 +489,14 @@ Widget _StatusBanner({required String status}) {
 
 String _getStatusLabel(String status) {
   switch (status) {
-    case 'pending':
-      return 'Pending';
+      case 'pending':
+        return 'Pending';
     case 'confirmation':
       return 'Awaiting Confirmation';
     case 'inprogress':
-      return 'In Progress';
-    case 'completed':
-      return 'Completed';
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
     case 'cancelled':
       return 'Cancelled';
     case 'disputed':
@@ -505,7 +505,7 @@ String _getStatusLabel(String status) {
       return 'Resolved';
     case 'closed':
       return 'Closed';
-    default:
+      default:
       return 'Pending';
   }
 }
