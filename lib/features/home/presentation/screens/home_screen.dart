@@ -1156,17 +1156,44 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Column(
-      children: recentBookings.map((booking) => Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: _buildBookingCard(
-          context,
-          booking['service'],
-          booking['date'],
-          booking['status'],
-          _getStatusColor(booking['status']),
-          onTap: () => _showBookingDetails(booking),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Recent Bookings',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FullBookingsScreen(bookings: _bookings),
+                  ),
+                );
+              },
+              child: const Text('See All'),
+            ),
+          ],
         ),
-      )).toList(),
+        ...recentBookings.map((booking) => Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _buildBookingCard(
+            context,
+            booking['service'],
+            booking['date'],
+            booking['status'],
+            _getStatusColor(booking['status']),
+            onTap: () => _showBookingDetails(booking),
+          ),
+        )).toList(),
+      ],
     );
   }
 
@@ -1200,21 +1227,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-        return Colors.green;
-      case 'pending':
-        return Colors.orange;
-      case 'cancelled':
-        return Colors.red;
-      case 'completed':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
   }
 
   Widget _buildBookingCard(
@@ -1344,6 +1356,163 @@ class _ActivityCard extends StatelessWidget {
         trailing: Text(
           formattedTime,
           style: GoogleFonts.poppins(fontSize: 12, color: colorScheme.primary),
+        ),
+      ),
+    );
+  }
+}
+
+// Move _getStatusColor here as a top-level function
+Color _getStatusColor(String status) {
+  switch (status.toLowerCase()) {
+    case 'upcoming':
+      return Colors.blue;
+    case 'in_progress':
+      return Colors.orange;
+    case 'completed':
+      return Colors.green;
+    case 'cancelled':
+      return Colors.red;
+    case 'confirmed':
+      return Colors.green;
+    case 'pending':
+      return Colors.orange;
+    default:
+      return Colors.grey;
+  }
+}
+
+// --- Full Bookings Screen for large lists ---
+class FullBookingsScreen extends StatefulWidget {
+  final List<Map<String, dynamic>> bookings;
+  const FullBookingsScreen({Key? key, required this.bookings}) : super(key: key);
+
+  @override
+  State<FullBookingsScreen> createState() => _FullBookingsScreenState();
+}
+
+class _FullBookingsScreenState extends State<FullBookingsScreen> {
+  static const int _pageSize = 10;
+  late List<Map<String, dynamic>> _allBookings;
+  List<Map<String, dynamic>> _displayedBookings = [];
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _currentPage = 0;
+  bool _isRefreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _allBookings = widget.bookings;
+    _loadMore();
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _displayedBookings.clear();
+      _currentPage = 0;
+      _hasMore = true;
+      _isRefreshing = true;
+    });
+    await Future.delayed(const Duration(milliseconds: 500)); // Simulate refresh
+    _loadMore();
+    setState(() {
+      _isRefreshing = false;
+    });
+  }
+
+  void _loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    setState(() => _isLoadingMore = true);
+    await Future.delayed(const Duration(milliseconds: 500)); // Simulate network delay
+    final nextPage = _currentPage + 1;
+    final start = _currentPage * _pageSize;
+    final end = (start + _pageSize).clamp(0, _allBookings.length);
+    if (start >= _allBookings.length) {
+      setState(() {
+        _hasMore = false;
+        _isLoadingMore = false;
+      });
+      return;
+    }
+    setState(() {
+      _displayedBookings.addAll(_allBookings.sublist(start, end));
+      _currentPage = nextPage;
+      _hasMore = end < _allBookings.length;
+      _isLoadingMore = false;
+    });
+  }
+
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification.metrics.pixels >= notification.metrics.maxScrollExtent - 100 && !_isLoadingMore && _hasMore) {
+      _loadMore();
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('All Bookings'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: NotificationListener<ScrollNotification>(
+          onNotification: _onScrollNotification,
+          child: _displayedBookings.isEmpty && !_hasMore && !_isLoadingMore
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.history_outlined, size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text('No bookings found', style: GoogleFonts.poppins(fontSize: 18, color: Colors.grey[600])),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _displayedBookings.length + (_hasMore ? 1 : 0),
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    if (index >= _displayedBookings.length) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+                        ),
+                      );
+                    }
+                    final booking = _displayedBookings[index];
+                    return Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: ListTile(
+                        leading: Icon(Icons.cleaning_services, color: Theme.of(context).colorScheme.primary, size: 32),
+                        title: Text(booking['service'], style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                        subtitle: Text(booking['date'], style: GoogleFonts.poppins(color: Colors.grey[600])),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(booking['status']).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            booking['status'],
+                            style: GoogleFonts.poppins(
+                              color: _getStatusColor(booking['status']),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        onTap: () {
+                          // Optionally show details
+                        },
+                      ),
+                    );
+                  },
+                ),
         ),
       ),
     );

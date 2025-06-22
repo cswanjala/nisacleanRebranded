@@ -4,6 +4,7 @@ import 'package:nisacleanv1/features/home/widgets/service_card.dart';
 import 'package:nisacleanv1/features/auth/screens/login_screen.dart';
 import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
 import 'package:nisacleanv1/features/bookings/models/booking.dart';
+import 'package:nisacleanv1/features/bookings/screens/all_bookings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final BookingService _bookingService = BookingService();
   List<Booking> _recentBookings = [];
   bool _isLoading = true;
+  int _recentBookingsPage = 0; // Track which set of 3 is being shown
 
   @override
   void initState() {
@@ -264,6 +266,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildRecentBookings() {
+    final int pageSize = 3;
+    final int start = _recentBookingsPage * pageSize;
+    final int end = (start + pageSize).clamp(0, _recentBookings.length);
+    final List<Booking> pagedBookings = _recentBookings.sublist(
+      start,
+      end,
+    );
+    final bool hasNextPage = end < _recentBookings.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -279,7 +290,12 @@ class _HomeScreenState extends State<HomeScreen> {
             const Spacer(),
             TextButton(
               onPressed: () {
-                // TODO: Implement view all bookings
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AllBookingsScreen(),
+                  ),
+                );
               },
               child: const Text('View All'),
             ),
@@ -290,9 +306,9 @@ class _HomeScreenState extends State<HomeScreen> {
           const Center(child: CircularProgressIndicator())
         else if (_recentBookings.isEmpty)
           _buildEmptyState('No recent bookings', Icons.history_outlined)
-        else
+        else ...[
           BookingsList(
-            bookings: _recentBookings
+            bookings: pagedBookings
                 .map((b) => {
                       'id': b.id,
                       'service': b.service,
@@ -303,6 +319,36 @@ class _HomeScreenState extends State<HomeScreen> {
                     })
                 .toList(),
           ),
+          if (_recentBookings.length > pageSize)
+            Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_upward, size: 32),
+                    onPressed: _recentBookingsPage > 0
+                        ? () {
+                            setState(() {
+                              _recentBookingsPage--;
+                            });
+                          }
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_downward, size: 32),
+                    onPressed: hasNextPage
+                        ? () {
+                            setState(() {
+                              _recentBookingsPage++;
+                            });
+                          }
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+        ],
       ],
     );
   }
