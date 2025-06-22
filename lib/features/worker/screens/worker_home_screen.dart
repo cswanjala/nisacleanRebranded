@@ -41,6 +41,14 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   static const int _bookingsPerPage = 3;
   String? _selectedStatusFilter; // null = all
 
+  int _currentActivityPage = 0;
+  static const int _activitiesPerPage = 5;
+
+  List<dynamic> get _pagedActivities {
+    final start = _currentActivityPage * _activitiesPerPage;
+    return _activities.skip(start).take(_activitiesPerPage).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -142,6 +150,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           setState(() {
             _activities = transformedActivities;
             _isActivitiesLoading = false;
+            _currentActivityPage = 0;
           });
         } else {
           setState(() {
@@ -1142,69 +1151,112 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             elevation: 2,
             color: const Color(0xFF2A2A2A),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _activities.length > 5 ? 5 : _activities.length,
-              separatorBuilder: (context, index) => Divider(color: Colors.white.withOpacity(0.1)),
-              itemBuilder: (context, index) {
-                final activity = _activities[index];
-                final timestamp = activity['timestamp'] != null ? DateTime.tryParse(activity['timestamp'].toString()) : null;
-                final isRead = activity['read'] == true;
+            child: Column(
+              children: [
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _pagedActivities.length,
+                  separatorBuilder: (context, index) => Divider(color: Colors.white.withOpacity(0.1)),
+                  itemBuilder: (context, index) {
+                    final activity = _pagedActivities[index];
+                    final timestamp = activity['timestamp'] != null ? DateTime.tryParse(activity['timestamp'].toString()) : null;
+                    final isRead = activity['read'] == true;
 
-                return AnimatedOpacity(
-                  opacity: 1.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    leading: CircleAvatar(
-                      backgroundColor: isRead ? Colors.grey.withOpacity(0.3) : const Color(0xFF4A90E2),
-                      child: Icon(
-                        _getActivityIcon(activity['type'] ?? 'notification'),
-                        color: isRead ? Colors.grey : Colors.white,
-                        size: 20,
+                    return AnimatedOpacity(
+                      opacity: 1.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        leading: CircleAvatar(
+                          backgroundColor: isRead ? Colors.grey.withOpacity(0.3) : const Color(0xFF4A90E2),
+                          child: Icon(
+                            _getActivityIcon(activity['type'] ?? 'notification'),
+                            color: isRead ? Colors.grey : Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          activity['title']?.toString() ?? 'Activity',
+                          style: GoogleFonts.poppins(
+                            fontWeight: isRead ? FontWeight.w400 : FontWeight.w600,
+                            color: isRead ? Colors.white70 : Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (activity['description']?.toString().isNotEmpty == true) ...[
+                              Text(
+                                activity['description'].toString(),
+                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                            ],
+                            if (timestamp != null)
+                              Text(
+                                _formatActivityTime(timestamp),
+                                style: GoogleFonts.poppins(color: Colors.white54, fontSize: 11),
+                              ),
+                          ],
+                        ),
+                        trailing: isRead
+                            ? null
+                            : Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF4A90E2),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
                       ),
-                    ),
-                    title: Text(
-                      activity['title']?.toString() ?? 'Activity',
-                      style: GoogleFonts.poppins(
-                        fontWeight: isRead ? FontWeight.w400 : FontWeight.w600,
-                        color: isRead ? Colors.white70 : Colors.white,
-                        fontSize: 14,
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _currentActivityPage > 0
+                          ? () {
+                              setState(() {
+                                _currentActivityPage--;
+                              });
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4A90E2),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        minimumSize: const Size(40, 40),
                       ),
+                      child: const Icon(Icons.arrow_upward),
                     ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (activity['description']?.toString().isNotEmpty == true) ...[
-                          Text(
-                            activity['description'].toString(),
-                            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                        if (timestamp != null)
-                          Text(
-                            _formatActivityTime(timestamp),
-                            style: GoogleFonts.poppins(color: Colors.white54, fontSize: 11),
-                          ),
-                      ],
+                    const SizedBox(width: 16),
+                    ElevatedButton(
+                      onPressed: ((_currentActivityPage + 1) * _activitiesPerPage) < _activities.length
+                          ? () {
+                              setState(() {
+                                _currentActivityPage++;
+                              });
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4A90E2),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        minimumSize: const Size(40, 40),
+                      ),
+                      child: const Icon(Icons.arrow_downward),
                     ),
-                    trailing: isRead
-                        ? null
-                        : Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF4A90E2),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                  ),
-                );
-              },
+                  ],
+                ),
+              ],
             ),
           ),
       ],
