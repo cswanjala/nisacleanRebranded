@@ -6,6 +6,7 @@ import 'package:nisacleanv1/features/bookings/models/booking.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nisacleanv1/core/bloc/auth/auth_bloc.dart';
 import 'package:nisacleanv1/core/bloc/auth/auth_state.dart';
+import 'package:nisacleanv1/core/bloc/auth/auth_event.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,6 +41,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Always fetch the latest profile when this screen is built
+    context.read<AuthBloc>().add(FetchProfileRequested());
     _selectedDay = DateTime.now();
     _fetchJobsForDay(_selectedDay!);
     _fetchRecentActivities();

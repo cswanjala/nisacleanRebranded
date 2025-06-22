@@ -8,6 +8,9 @@ import '../services/wallet_service.dart';
 import 'package:nisacleanv1/services/auth_service.dart';
 import '../models/transaction.dart';
 import 'package:intl/intl.dart';
+import 'package:badges/badges.dart' as badges;
+import 'package:shimmer/shimmer.dart';
+import 'package:lottie/lottie.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -30,14 +33,27 @@ class _WalletScreenState extends State<WalletScreen>
   String? _phoneNumber;
   bool _isProfileLoading = true;
   String? _profileError;
+  bool _showBalance = false;
+  int _pendingCount = 0;
+  int _txCount = 0;
+
+  String _searchQuery = '';
+  String _selectedType = 'All';
+  final List<String> _types = ['All', 'Deposit', 'Withdrawal', 'Payment'];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _fetchProfile();
-    _fetchBalance();
-    _fetchTransactions();
+    _fetchAll();
+  }
+
+  Future<void> _fetchAll() async {
+    await Future.wait([
+      _fetchProfile(),
+      _fetchBalance(),
+      _fetchTransactions(),
+    ]);
   }
 
   Future<void> _fetchProfile() async {
@@ -97,6 +113,8 @@ class _WalletScreenState extends State<WalletScreen>
       setState(() {
         _transactions = txs;
         _isTxLoading = false;
+        _txCount = txs.length;
+        _pendingCount = txs.where((tx) => tx['status'] == 'pending').length;
       });
     } catch (e) {
       if (!mounted) return;
@@ -115,107 +133,257 @@ class _WalletScreenState extends State<WalletScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              /// Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'My Wallet',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+      backgroundColor: colorScheme.background,
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        color: colorScheme.primary,
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 160,
+              backgroundColor: colorScheme.background,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        colorScheme.primary.withOpacity(0.12),
+                        colorScheme.primary.withOpacity(0.04),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.notifications_none,
-                      color: Colors.white,
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          CircleAvatar(
+                            radius: 28,
+                            backgroundColor: colorScheme.primary.withOpacity(0.15),
+                            child: Icon(Icons.account_circle, size: 38, color: colorScheme.primary),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Hello!',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  _isProfileLoading ? 'Loading...' : (_profileError != null ? 'User' : _phoneNumber ?? '-'),
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: colorScheme.onBackground,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.notifications_none, color: colorScheme.primary),
+                            onPressed: () {},
+                          ),
+                        ],
+                      ),
                     ),
-                    onPressed: () {},
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              /// Balance Card
-              if (_isBalanceLoading || _isProfileLoading)
-                const Center(child: CircularProgressIndicator())
-              else if (_balanceError != null || _profileError != null)
-                Center(
-                  child: Text(
-                    _balanceError ?? _profileError!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                )
-              else
-                BalanceCard(
-                  balance: _balance ?? 0.0,
-                  phoneNumber: _phoneNumber ?? '-',
-                paymentMethod: 'Mpesa',
-              ),
-              const SizedBox(height: 16),
-
-              /// Action Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ActionButtonCard(
-                    icon: Icons.add,
-                    title: 'Add',
-                    onPressed: () {},
-                    size: 28,
-                    fontSize: 12,
-                  ),
-                  ActionButtonCard(
-                    icon: Icons.upload,
-                    title: 'Release',
-                    onPressed: () {},
-                    size: 28,
-                    fontSize: 12,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              /// Tabs
-              TabBar(
-                controller: _tabController,
-                indicatorColor: Colors.white,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.grey,
-                labelStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
                 ),
-                tabs: const [
-                  Tab(text: 'Transactions'),
-                  Tab(text: 'Pending'),
-                  Tab(text: 'Statements'),
-                ],
               ),
-              const SizedBox(height: 16),
-
-              /// TabBarView with shrink-wrapped height
-              SizedBox(
-                height:
-                    MediaQuery.of(context).size.height *
-                    0.6, // Adjust as needed
-                child: TabBarView(
-                  controller: _tabController,
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildTransactionsTab(),
-                    _buildPendingTab(),
-                    _buildStatementsTab(),
+                    // Animated Balance Card
+                    _buildAnimatedBalanceCard(colorScheme),
+                    const SizedBox(height: 18),
+                    // Action Buttons
+                    _buildActionRow(colorScheme),
+                    const SizedBox(height: 22),
+                    // Tabs
+                    _buildTabs(colorScheme),
+                    const SizedBox(height: 18),
+                    // TabBarView
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildTransactionsTab(colorScheme),
+                          _buildPendingTab(colorScheme),
+                          _buildStatementsTab(colorScheme),
+                        ],
+                      ),
+                    ),
                   ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedBalanceCard(ColorScheme colorScheme) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _showBalance = !_showBalance;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+        child: _isBalanceLoading || _isProfileLoading
+            ? Shimmer.fromColors(
+                baseColor: colorScheme.surface,
+                highlightColor: colorScheme.primary.withOpacity(0.1),
+                child: Container(
+                  height: 90,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                ),
+              )
+            : _balanceError != null || _profileError != null
+                ? Container(
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Center(
+                      child: _buildLottieError(_balanceError ?? _profileError!),
+                    ),
+                  )
+                : Card(
+                    color: colorScheme.primary,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                      child: Row(
+                        children: [
+                          Icon(Icons.account_balance_wallet, color: Colors.white, size: 32),
+                          const SizedBox(width: 18),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Available Balance',
+                                  style: TextStyle(fontSize: 13, color: Colors.white70),
+                                ),
+                                const SizedBox(height: 4),
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 400),
+                                  child: _showBalance
+                                      ? Text(
+                                          'KES ${NumberFormat('#,##0.00').format(_balance ?? 0.0)}',
+                                          key: const ValueKey('balance'),
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : Container(
+                                          key: const ValueKey('hidden'),
+                                          height: 28,
+                                          width: 120,
+                                          color: Colors.white24,
+                                        ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            _showBalance ? Icons.visibility : Icons.visibility_off,
+                            color: Colors.white70,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+      ),
+    );
+  }
+
+  Widget _buildActionRow(ColorScheme colorScheme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildActionButton(
+          colorScheme,
+          icon: Icons.add,
+          label: 'Add',
+          onTap: () {},
+        ),
+        _buildActionButton(
+          colorScheme,
+          icon: Icons.upload,
+          label: 'Withdraw',
+          onTap: () {},
+        ),
+        _buildActionButton(
+          colorScheme,
+          icon: Icons.compare_arrows,
+          label: 'Transfer',
+          onTap: () {},
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton(ColorScheme colorScheme, {required IconData icon, required String label, required VoidCallback onTap}) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 70,
+          margin: const EdgeInsets.symmetric(horizontal: 6),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.primary.withOpacity(0.08),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 28, color: colorScheme.primary),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: colorScheme.primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -225,68 +393,382 @@ class _WalletScreenState extends State<WalletScreen>
     );
   }
 
-  Widget _buildTransactionsTab() {
-    if (_isTxLoading) {
-      return const Center(child: CircularProgressIndicator());
-    } else if (_txError != null) {
-      return Center(child: Text(_txError!, style: TextStyle(color: Colors.red)));
-    } else if (_transactions.isEmpty) {
-      return Center(child: Text('No transactions found.', style: TextStyle(color: Colors.white70)));
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      itemCount: _transactions.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final tx = _transactions[index];
-        return TransactionCard(
-          title: tx['type'] == 'deposit' ? 'Deposit' : 'Withdrawal',
-          amount: (tx['amount'] as num).toDouble(),
-          date: tx['createdAt'] != null ? tx['createdAt'].toString().split('T').first : '',
-          status: tx['status']?.toString().split('.').last ?? '-',
-        );
-      },
+  Widget _buildTabs(ColorScheme colorScheme) {
+    return TabBar(
+      controller: _tabController,
+      indicatorColor: colorScheme.primary,
+      labelColor: colorScheme.primary,
+      unselectedLabelColor: Colors.grey,
+      labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      tabs: [
+        badges.Badge(
+          showBadge: _txCount > 0,
+          badgeContent: Text(_txCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 10)),
+          child: const Tab(text: 'Transactions'),
+        ),
+        badges.Badge(
+          showBadge: _pendingCount > 0,
+          badgeContent: Text(_pendingCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 10)),
+          child: const Tab(text: 'Pending'),
+        ),
+        const Tab(text: 'Statements'),
+      ],
     );
   }
 
-  Widget _buildPendingTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: SizedBox(
-        height: 200,
-        child: Center(
-          child: Text(
-            'You have no pending fund releases at the moment.',
-            style: TextStyle(fontSize: 14, color: Colors.white70),
-            textAlign: TextAlign.center,
+  Widget _buildTransactionsTab(ColorScheme colorScheme) {
+    if (_isTxLoading) {
+      // Shimmer loading for transaction list
+      return ListView.builder(
+        itemCount: 4,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        itemBuilder: (context, index) => Shimmer.fromColors(
+          baseColor: colorScheme.surface,
+          highlightColor: colorScheme.primary.withOpacity(0.1),
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            height: 72,
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
+        ),
+      );
+    } else if (_txError != null) {
+      return _buildLottieError(_txError!);
+    } else if (_transactions.isEmpty) {
+      return _buildLottieEmpty('No transactions found.');
+    }
+
+    // --- Search and Filter UI ---
+    final filteredTxs = _transactions.where((tx) {
+      final matchesQuery = _searchQuery.isEmpty ||
+          (tx['type']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
+          (tx['status']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
+          (tx['reference']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
+          (tx['description']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+      final matchesType = _selectedType == 'All' ||
+          (_selectedType == 'Deposit' && tx['type'] == 'deposit') ||
+          (_selectedType == 'Withdrawal' && tx['type'] == 'withdrawal') ||
+          (_selectedType == 'Payment' && tx['type'] == 'payment');
+      return matchesQuery && matchesType;
+    }).toList();
+
+    // Group filtered transactions by date
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    for (final tx in filteredTxs) {
+      final date = tx['createdAt']?.toString().split('T').first ?? '-';
+      grouped.putIfAbsent(date, () => []).add(tx);
+    }
+
+    return Column(
+      children: [
+        // Search Bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Search transactions...',
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: colorScheme.surface,
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+        ),
+        // Filter Chips
+        SizedBox(
+          height: 38,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            itemCount: _types.length,
+            separatorBuilder: (context, i) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final type = _types[i];
+              final isSelected = _selectedType == type;
+              return ChoiceChip(
+                label: Text(type),
+                selected: isSelected,
+                onSelected: (_) {
+                  setState(() {
+                    _selectedType = type;
+                  });
+                },
+                selectedColor: colorScheme.primary,
+                backgroundColor: colorScheme.surface,
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Transaction List
+        Expanded(
+          child: filteredTxs.isEmpty
+              ? _buildLottieEmpty('No transactions found for your search/filter.')
+              : ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+                  children: grouped.entries.map((entry) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                          child: Text(
+                            _formatDate(entry.key),
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        ...entry.value.map((tx) => _buildTransactionCard(tx, colorScheme)).toList(),
+                      ],
+                    );
+                  }).toList(),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTransactionCard(Map<String, dynamic> tx, ColorScheme colorScheme) {
+    final isDeposit = tx['type'] == 'deposit';
+    final amount = (tx['amount'] as num).toDouble();
+    final status = tx['status']?.toString().split('.').last ?? '-';
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      color: colorScheme.surface,
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: isDeposit ? Colors.green.withOpacity(0.15) : Colors.red.withOpacity(0.15),
+          child: Icon(isDeposit ? Icons.arrow_downward : Icons.arrow_upward, color: isDeposit ? Colors.green : Colors.red),
+        ),
+        title: Text(isDeposit ? 'Deposit' : 'Withdrawal', style: TextStyle(fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
+        subtitle: Text(_formatTime(tx['createdAt']), style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7))),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              (isDeposit ? '+' : '-') + 'KES ' + amount.toStringAsFixed(2),
+              style: TextStyle(
+                color: isDeposit ? Colors.green : Colors.red,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                status,
+                style: TextStyle(
+                  color: colorScheme.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildStatementsTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16),
-      child: Column(
-        children: [
-          const Text(
-            "Export your full transaction history.",
-            style: TextStyle(fontSize: 14, color: Colors.white70),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[900],
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+  Widget _buildPendingTab(ColorScheme colorScheme) {
+    final pendingTxs = _transactions.where((tx) => tx['status'] == 'pending').toList();
+    if (_isTxLoading) {
+      return ListView.builder(
+        itemCount: 2,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        itemBuilder: (context, index) => Shimmer.fromColors(
+          baseColor: colorScheme.surface,
+          highlightColor: colorScheme.primary.withOpacity(0.1),
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            height: 72,
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(14),
             ),
-            onPressed: () {},
-            icon: const Icon(Icons.download),
-            label: const Text('Export Statement'),
           ),
-        ],
+        ),
+      );
+    } else if (_txError != null) {
+      return _buildLottieError(_txError!);
+    } else if (pendingTxs.isEmpty) {
+      return _buildLottieEmpty('You have no pending fund releases at the moment.');
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      itemCount: pendingTxs.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final tx = pendingTxs[index];
+        return _buildTransactionCard(tx, colorScheme);
+      },
+    );
+  }
+
+  Widget _buildStatementsTab(ColorScheme colorScheme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Lottie.network(
+              'https://assets2.lottiefiles.com/packages/lf20_0yfsb3a1.json',
+              width: 80,
+              height: 80,
+              repeat: true,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Export your full transaction history.",
+              style: TextStyle(fontSize: 15, color: colorScheme.onSurface.withOpacity(0.7)),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {},
+              icon: const Icon(Icons.download),
+              label: const Text('Export Statement'),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildLottieEmpty(String message) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Lottie.network(
+              'https://assets2.lottiefiles.com/packages/lf20_0yfsb3a1.json',
+              width: 120,
+              height: 120,
+              repeat: true,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: TextStyle(fontSize: 15, color: colorScheme.onSurface.withOpacity(0.7)),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLottieError(String error) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Lottie.network(
+              'https://assets2.lottiefiles.com/packages/lf20_jtbfg2nb.json',
+              width: 100,
+              height: 100,
+              repeat: false,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Error',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error,
+              style: TextStyle(fontSize: 14, color: Colors.red.withOpacity(0.7)),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(String date) {
+    final now = DateTime.now();
+    final txDate = DateTime.tryParse(date);
+    if (txDate == null) return date;
+    if (txDate.year == now.year && txDate.month == now.month && txDate.day == now.day) {
+      return 'Today';
+    } else if (txDate.year == now.year && txDate.month == now.month && txDate.day == now.day - 1) {
+      return 'Yesterday';
+    } else {
+      return DateFormat('d MMM yyyy').format(txDate);
+    }
+  }
+
+  String _formatTime(dynamic dateTime) {
+    if (dateTime == null) return '';
+    final dt = DateTime.tryParse(dateTime.toString());
+    if (dt == null) return '';
+    return DateFormat('h:mm a').format(dt);
+  }
+
+  Future<void> _onRefresh() async {
+    await _fetchAll();
+  }
+}
+
+class _AnimatedSection extends StatelessWidget {
+  final Widget child;
+  const _AnimatedSection({required this.child});
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 30 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

@@ -64,10 +64,18 @@ class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectio
     setState(() => _isLoading = true);
     try {
       final details = widget.bookingDetails;
+      print('[DEBUG] Booking details: ' + details.toString());
       final bookingType = _autoAssign ? 'system assigned' : 'client assigned';
       final selectedProvider = !_autoAssign ? _selectedProviderId : null;
       if (bookingType == 'client assigned' && selectedProvider == null) {
         throw 'Please select a service provider.';
+      }
+      // Null checks for required fields
+      if (details['service'] == null || details['service'] == '' ||
+          details['date'] == null ||
+          details['time'] == null ||
+          details['address'] == null || details['address'] == '') {
+        throw 'Please fill in all required fields (service, date, time, address).';
       }
       // Compose location
       final location = BookingLocation(
