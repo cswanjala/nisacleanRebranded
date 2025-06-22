@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nisacleanv1/core/constants/api_constants.dart';
+import 'package:nisacleanv1/core/bloc/auth/auth_state.dart';
 
 class AuthService {
   // Use centralized base URL
@@ -234,36 +235,73 @@ class AuthService {
   }
 
   // Fetch user profile
-  Future<Map<String, dynamic>> fetchUserProfile() async {
+  Future<Map<String, dynamic>> fetchUserProfile({UserType? userType}) async {
     try {
       final token = await getToken();
       if (token == null) throw 'Not authenticated';
-      final url = '$baseUrl/users/me';
-      final headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
-      print('Fetching user profile: $url'); // DEBUG
-      print('Request headers: ' + headers.toString()); // DEBUG
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      );
-      print('Profile Response Status: \\${response.statusCode}'); // DEBUG
-      print('Profile Response Body: \\${response.body}'); // DEBUG
-      final data = jsonDecode(response.body);
-
-      // If the response is the user object directly, just return it
-      if (response.statusCode == 200 && data['_id'] != null) {
-        return data;
-      } else if (response.statusCode == 200 && data['data'] != null) {
-        // fallback for old format
-        return data['data'];
+      // Determine user type
+      UserType? type = userType;
+      if (type == null) {
+        final user = await getUser();
+        final role = user?['role']?.toString()?.toLowerCase()?.trim();
+        if (role == 'worker') {
+          type = UserType.serviceProvider;
+        } else {
+          type = UserType.client;
+        }
+      }
+      if (type == UserType.serviceProvider) {
+        // Fetch provider profile
+        final url = '$baseUrl/providers/get-current-provider';
+        final headers = {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        };
+        print('Fetching provider profile: $url');
+        final response = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+        print('Provider Profile Response Status: \\${response.statusCode}');
+        print('Provider Profile Response Body: \\${response.body}');
+        final data = jsonDecode(response.body);
+        if (response.statusCode == 200 && data['data'] != null) {
+          final provider = data['data'];
+          // Return a unified profile map for workers
+          return {
+            'name': provider['user']?['name'] ?? '',
+            'email': provider['user']?['email'] ?? '',
+            'phone': provider['user']?['phone'] ?? '',
+            'providerProfile': provider,
+          };
+        } else {
+          throw data['message'] ?? 'Failed to fetch provider profile';
+        }
       } else {
-        throw data['message'] ?? 'Failed to fetch user profile';
+        // Fetch normal user profile
+        final url = '$baseUrl/users/me';
+        final headers = {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        };
+        print('Fetching user profile: $url');
+        final response = await http.get(
+          Uri.parse(url),
+          headers: headers,
+        );
+        print('Profile Response Status: \\${response.statusCode}');
+        print('Profile Response Body: \\${response.body}');
+        final data = jsonDecode(response.body);
+        if (response.statusCode == 200 && data['_id'] != null) {
+          return data;
+        } else if (response.statusCode == 200 && data['data'] != null) {
+          return data['data'];
+        } else {
+          throw data['message'] ?? 'Failed to fetch user profile';
+        }
       }
     } catch (e) {
-      print('Profile Fetch Error: $e'); // DEBUG
+      print('Profile Fetch Error: $e');
       throw e.toString();
     }
   }
@@ -300,24 +338,23 @@ class AuthService {
     }
   }
 
-  // Fetch current provider profile
+  // Fetch current provider profile (ensure correct endpoint)
   Future<Map<String, dynamic>> fetchCurrentProviderProfile() async {
     try {
       final token = await getToken();
       if (token == null) throw 'Not authenticated';
-      final url = '$baseUrl/products/get-current-provider';
+      final url = '$baseUrl/providers/get-current-provider';
       final headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      print('Fetching provider profile: $url'); // DEBUG
-      print('Request headers: ' + headers.toString()); // DEBUG
+      print('Fetching provider profile: $url');
       final response = await http.get(
         Uri.parse(url),
         headers: headers,
       );
-      print('Provider Profile Response Status: \\${response.statusCode}'); // DEBUG
-      print('Provider Profile Response Body: \\${response.body}'); // DEBUG
+      print('Provider Profile Response Status: \\${response.statusCode}');
+      print('Provider Profile Response Body: \\${response.body}');
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['data'] != null) {
         return data['data'];
@@ -325,7 +362,7 @@ class AuthService {
         throw data['message'] ?? 'Failed to fetch provider profile';
       }
     } catch (e) {
-      print('Provider Profile Fetch Error: $e'); // DEBUG
+      print('Provider Profile Fetch Error: $e');
       throw e.toString();
     }
   }
