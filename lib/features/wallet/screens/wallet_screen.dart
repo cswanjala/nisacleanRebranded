@@ -618,108 +618,80 @@ class _WalletScreenState extends State<WalletScreen>
 
     return Column(
       children: [
-        // Filter Chips Row (Type chips only)
+        // Filter Chips Row (Type chips + Date chip at the end)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: SizedBox(
             height: 38,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: _types.length,
+              itemCount: _types.length + 1, // +1 for date chip at the end
               separatorBuilder: (context, i) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
-                final type = _types[i];
-                final isSelected = _selectedType == type;
-                return ChoiceChip(
-                  label: Text(type),
-                  selected: isSelected,
-                  onSelected: (_) {
-                    setState(() {
-                      _selectedType = type;
-                    });
-                  },
-                  selectedColor: colorScheme.primary,
-                  backgroundColor: colorScheme.surface,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : colorScheme.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
-                );
+                if (i < _types.length) {
+                  final type = _types[i];
+                  final isSelected = _selectedType == type;
+                  return ChoiceChip(
+                    label: Text(type),
+                    selected: isSelected,
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedType = type;
+                      });
+                    },
+                    selectedColor: colorScheme.primary,
+                    backgroundColor: colorScheme.surface,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : colorScheme.onSurface,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  );
+                } else {
+                  // Date chip at the end
+                  if (_selectedDate == null) {
+                    return ActionChip(
+                      avatar: const Icon(Icons.calendar_today, size: 18),
+                      label: const Text('Date'),
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            _selectedDate = picked;
+                          });
+                        }
+                      },
+                      backgroundColor: colorScheme.surface,
+                      labelStyle: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  } else {
+                    return ChoiceChip(
+                      avatar: const Icon(Icons.calendar_today, size: 18),
+                      label: Text(DateFormat('d MMM yyyy').format(_selectedDate!)),
+                      selected: true,
+                      onSelected: (_) {
+                        setState(() {
+                          _selectedDate = null;
+                        });
+                      },
+                      selectedColor: colorScheme.primary,
+                      backgroundColor: colorScheme.primary.withOpacity(0.1),
+                      labelStyle: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  }
+                }
               },
             ),
-          ),
-        ),
-        // Floating Date Filter Button
-        Padding(
-          padding: const EdgeInsets.only(right: 18, top: 2, bottom: 2),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Material(
-                elevation: 3,
-                borderRadius: BorderRadius.circular(24),
-                color: Colors.transparent,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.surface,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.primary.withOpacity(0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(24),
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDate ?? DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (picked != null) {
-                        setState(() {
-                          _selectedDate = picked;
-                        });
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.calendar_today, size: 18, color: colorScheme.primary),
-                          const SizedBox(width: 6),
-                          Text(
-                            _selectedDate == null
-                                ? 'Date'
-                                : DateFormat('d MMM yyyy').format(_selectedDate!),
-                            style: TextStyle(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (_selectedDate != null) ...[
-                            const SizedBox(width: 4),
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedDate = null;
-                                });
-                              },
-                              child: Icon(Icons.close, size: 18, color: colorScheme.primary),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
         const SizedBox(height: 8),
