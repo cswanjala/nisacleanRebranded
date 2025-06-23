@@ -619,46 +619,6 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     return SliverToBoxAdapter(
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Wrap(
-              spacing: 8,
-              children: [
-                ChoiceChip(
-                  label: const Text('All'),
-                  selected: _selectedStatusFilter == null,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedStatusFilter = null;
-                      _currentBookingPage = 0;
-                    });
-                    _fetchJobsForDay(_selectedDay!, reset: true);
-                  },
-                ),
-                ...[
-                  {'label': 'Pending', 'value': 'pending', 'icon': Icons.hourglass_empty},
-                  {'label': 'Awaiting Confirmation', 'value': 'confirmation', 'icon': Icons.access_time},
-                  {'label': 'In Progress', 'value': 'inprogress', 'icon': Icons.play_arrow},
-                  {'label': 'Completed', 'value': 'completed', 'icon': Icons.check_circle},
-                  {'label': 'Cancelled', 'value': 'cancelled', 'icon': Icons.cancel},
-                ].map((statusMap) {
-                  final status = statusMap as Map<String, dynamic>;
-                  return ChoiceChip(
-                    avatar: Icon(status['icon'] as IconData, size: 16, color: Colors.white70),
-                    label: Text(status['label'] as String),
-                    selected: _selectedStatusFilter == status['value'] as String,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedStatusFilter = status['value'] as String;
-                        _currentBookingPage = 0;
-                      });
-                      _fetchJobsForDay(_selectedDay!, reset: true);
-                    },
-                  );
-                }),
-              ],
-            ),
-          ),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -1074,14 +1034,26 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         const SizedBox(height: 16),
         Text('Trends', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(child: trend('Today', m['todayTrend']?['bookings'] ?? {}, Icons.today, Colors.blue)),
-            const SizedBox(width: 12),
-            Expanded(child: trend('This Week', m['weeklyTrend']?['change'] ?? {}, Icons.calendar_view_week, Colors.purple)),
-            const SizedBox(width: 12),
-            Expanded(child: trend('This Month', m['monthTrend']?['change'] ?? {}, Icons.calendar_view_month, Colors.green)),
-          ],
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 180,
+                child: trend('Today', m['todayTrend']?['bookings'] ?? {}, Icons.today, Colors.blue),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 180,
+                child: trend('This Week', m['weeklyTrend']?['change'] ?? {}, Icons.calendar_view_week, Colors.purple),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 180,
+                child: trend('This Month', m['monthTrend']?['change'] ?? {}, Icons.calendar_view_month, Colors.green),
+              ),
+            ],
+          ),
         ),
       ],
     );
