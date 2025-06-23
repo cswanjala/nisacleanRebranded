@@ -11,6 +11,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nisacleanv1/core/constants/api_constants.dart';
+import 'package:flutter/animation.dart';
 
 class WorkerHomeScreen extends StatefulWidget {
   const WorkerHomeScreen({super.key});
@@ -44,6 +45,10 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   int _currentActivityPage = 0;
   static const int _activitiesPerPage = 5;
 
+  Map<String, dynamic>? _metrics;
+  bool _isMetricsLoading = true;
+  String? _metricsError;
+
   List<dynamic> get _pagedActivities {
     final start = _currentActivityPage * _activitiesPerPage;
     return _activities.skip(start).take(_activitiesPerPage).toList();
@@ -58,6 +63,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     _fetchRecentActivities();
     _fetchTodayJobsCount();
     _fetchCompletedJobsCount();
+    _fetchProviderMetrics();
   }
 
   @override
@@ -276,7 +282,24 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     }
   }
 
-
+  Future<void> _fetchProviderMetrics() async {
+    setState(() {
+      _isMetricsLoading = true;
+      _metricsError = null;
+    });
+    try {
+      final metrics = await _bookingService.getProviderMetrics();
+      setState(() {
+        _metrics = metrics;
+        _isMetricsLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _metricsError = e.toString();
+        _isMetricsLoading = false;
+      });
+    }
+  }
 
   String _getActivityTypeFromAction(String action) {
     switch (action.toUpperCase()) {
@@ -613,22 +636,26 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                   },
                 ),
                 ...[
-                  {'label': 'Pending', 'value': 'pending'},
-                  {'label': 'Awaiting Confirmation', 'value': 'confirmation'},
-                  {'label': 'In Progress', 'value': 'inprogress'},
-                  {'label': 'Completed', 'value': 'completed'},
-                  {'label': 'Cancelled', 'value': 'cancelled'},
-                ].map((status) => ChoiceChip(
-                  label: Text(status['label']!),
-                  selected: _selectedStatusFilter == status['value'],
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedStatusFilter = status['value'];
-                      _currentBookingPage = 0;
-                    });
-                    _fetchJobsForDay(_selectedDay!, reset: true);
-                  },
-                )),
+                  {'label': 'Pending', 'value': 'pending', 'icon': Icons.hourglass_empty},
+                  {'label': 'Awaiting Confirmation', 'value': 'confirmation', 'icon': Icons.access_time},
+                  {'label': 'In Progress', 'value': 'inprogress', 'icon': Icons.play_arrow},
+                  {'label': 'Completed', 'value': 'completed', 'icon': Icons.check_circle},
+                  {'label': 'Cancelled', 'value': 'cancelled', 'icon': Icons.cancel},
+                ].map((statusMap) {
+                  final status = statusMap as Map<String, dynamic>;
+                  return ChoiceChip(
+                    avatar: Icon(status['icon'] as IconData, size: 16, color: Colors.white70),
+                    label: Text(status['label'] as String),
+                    selected: _selectedStatusFilter == status['value'] as String,
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedStatusFilter = status['value'] as String;
+                        _currentBookingPage = 0;
+                      });
+                      _fetchJobsForDay(_selectedDay!, reset: true);
+                    },
+                  );
+                }),
               ],
             ),
           ),
@@ -913,155 +940,150 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   }
 
   Widget _buildQuickStats(BuildContext context) {
-    double totalEarnings = 0;
-    for (final job in _jobs) {
-      if (job.status.toString().toLowerCase() == 'completed') {
-        totalEarnings += job.amount ?? 0;
-      }
+    if (_isMetricsLoading) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.all(24),
+        child: CircularProgressIndicator(color: Colors.white70),
+      ));
     }
-    double averageRating = 0;
-    int ratedJobs = 0;
-    for (final job in _jobs) {
-      if (job.status.toString().toLowerCase() == 'completed' && job.review != null) {
-        averageRating += 4.5; // Placeholder
-        ratedJobs++;
-      }
+    if (_metricsError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red.withOpacity(0.7)),
+              const SizedBox(height: 16),
+              Text('Error loading stats', style: GoogleFonts.poppins(fontSize: 16, color: Colors.red)),
+              const SizedBox(height: 8),
+              Text(_metricsError!, style: GoogleFonts.poppins(fontSize: 14, color: Colors.red.withOpacity(0.7))),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _fetchProviderMetrics,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A90E2),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
-    averageRating = ratedJobs > 0 ? averageRating / ratedJobs : 0;
-
+    final m = _metrics!;
+    Widget stat(String label, dynamic value, IconData icon, Color color, {String? prefix, String? suffix}) {
+      final isNum = value is num;
+      return Card(
+        elevation: 4,
+        color: const Color(0xFF232323),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(height: 8),
+              isNum
+                  ? TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0, end: (value as num).toDouble()),
+                      duration: const Duration(milliseconds: 800),
+                      builder: (context, val, child) {
+                        String display = val.toStringAsFixed(value is int ? 0 : 1);
+                        if (prefix != null) display = '$prefix$display';
+                        if (suffix != null) display = '$display$suffix';
+                        return Text(display, style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600, color: color));
+                      },
+                    )
+                  : Text(value.toString(), style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600, color: color)),
+              const SizedBox(height: 4),
+              Text(label, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14)),
+            ],
+          ),
+        ),
+      );
+    }
+    Widget trend(String label, Map t, IconData icon, Color color) {
+      final change = t['change'] ?? 0;
+      final isUp = change >= 0;
+      return Card(
+        elevation: 2,
+        color: const Color(0xFF232323),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(width: 8),
+              Text(label, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500)),
+              const Spacer(),
+              Icon(isUp ? Icons.arrow_upward : Icons.arrow_downward, color: isUp ? Colors.green : Colors.red, size: 18),
+              const SizedBox(width: 4),
+              Text('${change.abs()}%', style: GoogleFonts.poppins(color: isUp ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Quick Stats',
-          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+        Row(
+          children: [
+            Icon(Icons.bar_chart, color: Colors.white, size: 22),
+            const SizedBox(width: 8),
+            Text('Quick Stats', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+          ],
         ),
+        const SizedBox(height: 8),
+        Divider(color: Colors.white24, thickness: 1),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
-              child: _buildStatCard(
-                context,
-                'Today\'s Jobs',
-                _isTodayJobsLoading ? '...' : _todayJobsCount.toString(),
-                Icons.work,
-                Colors.blue,
-                isLoading: _isTodayJobsLoading,
-                error: _todayJobsError,
-              ),
-            ),
+            Expanded(child: stat('Rating', m['rating'] ?? 0, Icons.star, Colors.amber)),
             const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                context,
-                'Earnings',
-                'KES ${totalEarnings.toStringAsFixed(0)}',
-                Icons.account_balance_wallet,
-                Colors.green,
-              ),
-            ),
+            Expanded(child: stat('Total Bookings', m['totalBookings'] ?? 0, Icons.work, Colors.blue)),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
-              child: _buildStatCard(
-                context,
-                'Rating',
-                averageRating > 0 ? averageRating.toStringAsFixed(1) : 'N/A',
-                Icons.star,
-                Colors.amber,
-              ),
-            ),
+            Expanded(child: stat('Completed', m['totalCompleted'] ?? 0, Icons.check_circle, Colors.purple)),
             const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                context,
-                'Completed',
-                _isCompletedJobsLoading ? '...' : _completedJobsCount.toString(),
-                Icons.check_circle,
-                Colors.purple,
-                isLoading: _isCompletedJobsLoading,
-                error: _completedJobsError,
-              ),
-            ),
+            Expanded(child: stat('Total Revenue', m['totalRevenue'] ?? 0, Icons.account_balance_wallet, Colors.green, prefix: 'KES ')),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: stat('Avg Revenue/Job', m['averageRevenuePerJob'] ?? 0, Icons.trending_up, Colors.cyan, prefix: 'KES ')),
+            const SizedBox(width: 12),
+            Expanded(child: stat('Avg Duration', m['averageBookingDuration'] ?? 0, Icons.timer, Colors.orange, suffix: ' min')),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: stat('Days Active', m['daysActive'] ?? 0, Icons.calendar_today, Colors.teal)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text('Trends', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: trend('Today', m['todayTrend']?['bookings'] ?? {}, Icons.today, Colors.blue)),
+            const SizedBox(width: 12),
+            Expanded(child: trend('This Week', m['weeklyTrend']?['change'] ?? {}, Icons.calendar_view_week, Colors.purple)),
+            const SizedBox(width: 12),
+            Expanded(child: trend('This Month', m['monthTrend']?['change'] ?? {}, Icons.calendar_view_month, Colors.green)),
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildStatCard(
-    BuildContext context,
-    String title,
-    String value,
-    IconData icon,
-    Color color, {
-    bool isLoading = false,
-    String? error,
-  }) {
-    return Card(
-      elevation: 2,
-      color: const Color(0xFF2A2A2A),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            if (isLoading)
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                ),
-              )
-            else if (error != null)
-              Text(
-                'Error',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.red,
-                ),
-              )
-            else
-              Text(
-                value,
-                style: GoogleFonts.poppins(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-              ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: GoogleFonts.poppins(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
-            ),
-            if (error != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                error,
-                style: GoogleFonts.poppins(
-                  color: Colors.red.withOpacity(0.7),
-                  fontSize: 10,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ],
-        ),
-      ),
     );
   }
 
@@ -1111,9 +1133,15 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Recent Activity',
-              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+            Row(
+              children: [
+                Icon(Icons.history, color: Colors.white, size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  'Recent Activity',
+                  style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                ),
+              ],
             ),
             if (_activities.isNotEmpty)
               TextButton.icon(
@@ -1124,6 +1152,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
               ),
           ],
         ),
+        const SizedBox(height: 8),
+        Divider(color: Colors.white24, thickness: 1),
         const SizedBox(height: 12),
         if (_activities.isEmpty)
           Padding(

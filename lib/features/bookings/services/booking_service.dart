@@ -451,4 +451,23 @@ class BookingService {
       return [];
     }
   }
+
+  // Fetch provider metrics for dashboard quick stats
+  Future<Map<String, dynamic>> getProviderMetrics() async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/providers/metrics'),
+        headers: headers,
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        return data['data'] as Map<String, dynamic>;
+      } else {
+        throw data['message'] ?? 'Failed to fetch provider metrics';
+      }
+    } catch (e) {
+      throw e.toString();
+    }
+  }
 } 
