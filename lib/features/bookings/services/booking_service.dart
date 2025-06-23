@@ -282,6 +282,7 @@ class BookingService {
     final uri = Uri.parse('$baseUrl/providers/get-available-providers?service=$service&lng=$lng&lat=$lat');
     final response = await http.get(uri, headers: headers);
     final data = jsonDecode(response.body);
+    print('Get available providers response: \\${response.statusCode} - \\${response.body}');
     if (response.statusCode == 200 && data['success'] == true) {
       final providers = data['data'] as List;
       return providers.map((e) => Map<String, dynamic>.from(e)).toList();

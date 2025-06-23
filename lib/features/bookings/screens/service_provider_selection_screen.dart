@@ -266,11 +266,22 @@ class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectio
           itemCount: _providers.length,
           itemBuilder: (context, index) {
             final provider = _providers[index];
-            final profilePic = provider['profilePic'] as String?;
-            final name = provider['name'] as String? ?? 'Unknown';
-            final id = provider['_id'] as String? ?? '';
+            // Prefer name/id from user subfield if not present at top level
+            final name = (provider['name'] as String?)?.isNotEmpty == true
+              ? provider['name']
+              : (provider['user']?['name'] as String?) ?? 'Unknown';
+            final id = (provider['_id'] as String?)?.isNotEmpty == true
+              ? provider['_id']
+              : (provider['user']?['_id'] as String?) ?? '';
+            // Pass name/id into provider map for use in tile
+            final providerWithName = Map<String, dynamic>.from(provider)
+              ..['name'] = name
+              ..['_id'] = id;
+            // Add rating for use in tile
+            final rating = provider['rating'] is num ? provider['rating'] : (provider['rating'] != null ? double.tryParse(provider['rating'].toString()) : null);
+            providerWithName['rating'] = rating;
             return _ProviderExpansionTile(
-              provider: provider,
+              provider: providerWithName,
               selectedProviderId: _selectedProviderId,
               onSelect: (value) {
                 setState(() {
@@ -348,18 +359,40 @@ class _ProviderExpansionTileState extends State<_ProviderExpansionTile> {
   @override
   Widget build(BuildContext context) {
     final provider = widget.provider;
+    // Prefer name/id from user subfield if not present at top level
+    final name = (provider['name'] as String?)?.isNotEmpty == true
+      ? provider['name']
+      : (provider['user']?['name'] as String?) ?? 'Unknown';
+    final id = (provider['_id'] as String?)?.isNotEmpty == true
+      ? provider['_id']
+      : (provider['user']?['_id'] as String?) ?? '';
     final profilePic = provider['profilePic'] as String?;
-    final name = provider['name'] as String? ?? 'Unknown';
-    final id = provider['_id'] as String? ?? '';
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
         leading: profilePic != null && profilePic.isNotEmpty
             ? CircleAvatar(backgroundImage: NetworkImage(profilePic))
             : const CircleAvatar(child: Icon(Icons.person)),
-        title: Text(
-          name,
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+              ),
+            ),
+            if (provider['rating'] != null)
+              Row(
+                children: [
+                  const Icon(Icons.star, color: Colors.amber, size: 18),
+                  const SizedBox(width: 2),
+                  Text(
+                    provider['rating'].toStringAsFixed(1),
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 14, color: Colors.amber[800]),
+                  ),
+                ],
+              ),
+          ],
         ),
         trailing: Radio<String>(
           value: id,

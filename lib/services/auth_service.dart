@@ -366,4 +366,24 @@ class AuthService {
       throw e.toString();
     }
   }
+
+  // Toggle provider availability
+  Future<bool> toggleProviderAvailability() async {
+    final token = await getToken();
+    if (token == null) throw 'Not authenticated';
+    final url = '$baseUrl/providers/toggle-availability';
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200 && data['success'] == true) {
+      return data['isAvailable'] == true;
+    } else {
+      throw data['message'] ?? 'Failed to toggle availability';
+    }
+  }
 } 

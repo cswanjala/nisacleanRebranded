@@ -308,18 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildEmptyState('No recent bookings', Icons.history_outlined)
         else ...[
           BookingsList(
-            bookings: pagedBookings
-                .map((b) => {
-                      'id': b.id,
-                      'service': b.service,
-                      'date': b.date,
-                      'time': b.time,
-                      'amount': b.amount,
-                      'status': b.status.toString().split('.').last,
-                      'worker': b.worker != null ? b.worker!.toJson() : null,
-                      'providerName': b.worker?.name ?? '',
-                    })
-                .toList(),
+            bookings: pagedBookings.map((b) => b.toJson()).toList(),
           ),
           if (_recentBookings.length > pageSize)
             Center(

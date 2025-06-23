@@ -900,40 +900,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   }
 
   Widget _buildQuickStats(BuildContext context) {
-    if (_isMetricsLoading) {
-      return const Center(child: Padding(
-        padding: EdgeInsets.all(24),
-        child: CircularProgressIndicator(color: Colors.white70),
-      ));
-    }
-    if (_metricsError != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red.withOpacity(0.7)),
-              const SizedBox(height: 16),
-              Text('Error loading stats', style: GoogleFonts.poppins(fontSize: 16, color: Colors.red)),
-              const SizedBox(height: 8),
-              Text(_metricsError!, style: GoogleFonts.poppins(fontSize: 14, color: Colors.red.withOpacity(0.7))),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _fetchProviderMetrics,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    final m = _metrics!;
+    final m = _metrics ?? {};
     Widget stat(String label, dynamic value, IconData icon, Color color, {String? prefix, String? suffix}) {
       final isNum = value is num;
       return Card(
@@ -966,29 +933,6 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         ),
       );
     }
-    Widget trend(String label, Map t, IconData icon, Color color) {
-      final change = t['change'] ?? 0;
-      final isUp = change >= 0;
-      return Card(
-        elevation: 2,
-        color: const Color(0xFF232323),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Icon(icon, color: color, size: 22),
-              const SizedBox(width: 8),
-              Text(label, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500)),
-              const Spacer(),
-              Icon(isUp ? Icons.arrow_upward : Icons.arrow_downward, color: isUp ? Colors.green : Colors.red, size: 18),
-              const SizedBox(width: 4),
-              Text('${change.abs()}%', style: GoogleFonts.poppins(color: isUp ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ),
-      );
-    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1006,54 +950,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           children: [
             Expanded(child: stat('Rating', m['rating'] ?? 0, Icons.star, Colors.amber)),
             const SizedBox(width: 12),
-            Expanded(child: stat('Total Bookings', m['totalBookings'] ?? 0, Icons.work, Colors.blue)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: stat('Completed', m['totalCompleted'] ?? 0, Icons.check_circle, Colors.purple)),
-            const SizedBox(width: 12),
-            Expanded(child: stat('Total Revenue', m['totalRevenue'] ?? 0, Icons.account_balance_wallet, Colors.green, prefix: 'KES ')),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
             Expanded(child: stat('Avg Revenue/Job', m['averageRevenuePerJob'] ?? 0, Icons.trending_up, Colors.cyan, prefix: 'KES ')),
-            const SizedBox(width: 12),
-            Expanded(child: stat('Avg Duration', m['averageBookingDuration'] ?? 0, Icons.timer, Colors.orange, suffix: ' min')),
           ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: stat('Days Active', m['daysActive'] ?? 0, Icons.calendar_today, Colors.teal)),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Text('Trends', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-        const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              SizedBox(
-                width: 180,
-                child: trend('Today', m['todayTrend']?['bookings'] ?? {}, Icons.today, Colors.blue),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 180,
-                child: trend('This Week', m['weeklyTrend']?['change'] ?? {}, Icons.calendar_view_week, Colors.purple),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 180,
-                child: trend('This Month', m['monthTrend']?['change'] ?? {}, Icons.calendar_view_month, Colors.green),
-              ),
-            ],
-          ),
         ),
       ],
     );

@@ -34,43 +34,45 @@ class ProfileScreen extends StatelessWidget {
                 return Center(child: Text('Error: \\${snapshot.error}', style: TextStyle(color: Colors.red)));
               }
               final provider = snapshot.data ?? {};
+              print('Provider profile: ' + provider.toString());
               final providerName = provider['name'] ?? name;
               final providerEmail = provider['email'] ?? email;
               final providerPhone = provider['phone'] ?? phone;
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 110,
-                      height: 110,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [blue.withOpacity(0.5), Colors.transparent],
-                          radius: 0.6,
-                          center: Alignment.center,
-                        ),
-                      ),
-                    ),
-                    const CircleAvatar(
-                      radius: 45,
+              final bool isAvailable = provider['isAvailable'] == true || false;
+              return Scaffold(
+                backgroundColor: Theme.of(context).colorScheme.background,
+                body: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 40),
+                        Center(
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Container(
+                                width: 110,
+                                height: 110,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: RadialGradient(
+                                    colors: [blue.withOpacity(0.5), Colors.transparent],
+                                    radius: 0.6,
+                                    center: Alignment.center,
+                                  ),
+                                ),
+                              ),
+                              const CircleAvatar(
+                                radius: 45,
                                 child: Icon(Icons.person, size: 48, color: Colors.white),
                                 backgroundColor: Color(0xFF1E88E5),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
                           providerName,
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Colors.white,
@@ -81,6 +83,28 @@ class ProfileScreen extends StatelessWidget {
                         Text(
                           providerEmail,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white10,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Availability',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              _ProviderAvailabilityToggle(isAvailable: isAvailable),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 24),
                         _buildInfoSection(context, 'Provider Information', blue, [
@@ -148,43 +172,65 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     name,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
                     email,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
-              ),
-              const SizedBox(height: 24),
-              _buildInfoSection(context, 'Personal Information', blue, [
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white10,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Availability',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _ProviderAvailabilityToggle(isAvailable: false),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildInfoSection(context, 'Personal Information', blue, [
                     _InfoItem(icon: Icons.email, label: email),
                     _InfoItem(icon: Icons.phone, label: phone),
                   ], name: name, phone: phone),
-              const SizedBox(height: 24),
-              _buildInfoSection(context, 'Utilities', blue, [
-                _NavItem(icon: Icons.settings, label: 'Settings', onTap: () {}),
-                _NavItem(icon: Icons.language, label: 'Language', onTap: () {}),
-                _NavItem(
-                  icon: Icons.help_outline,
-                  label: 'Ask Help-Desk',
-                  onTap: () {},
-                ),
-                _NavItem(
-                  icon: Icons.logout,
-                  label: 'Log-Out',
+                  const SizedBox(height: 24),
+                  _buildInfoSection(context, 'Utilities', blue, [
+                    _NavItem(icon: Icons.settings, label: 'Settings', onTap: () {}),
+                    _NavItem(icon: Icons.language, label: 'Language', onTap: () {}),
+                    _NavItem(
+                      icon: Icons.help_outline,
+                      label: 'Ask Help-Desk',
+                      onTap: () {},
+                    ),
+                    _NavItem(
+                      icon: Icons.logout,
+                      label: 'Log-Out',
                       onTap: () {
                         context.read<AuthBloc>().add(LogoutRequested());
                         Navigator.pushReplacementNamed(context, '/login');
                       },
-                ),
-              ]),
-            ],
+                    ),
+                  ]),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
         );
       },
     );
@@ -284,6 +330,72 @@ class _NavItem extends StatelessWidget {
         color: Colors.white70,
       ),
       onTap: onTap,
+    );
+  }
+}
+
+class _ProviderAvailabilityToggle extends StatefulWidget {
+  final bool isAvailable;
+  const _ProviderAvailabilityToggle({required this.isAvailable});
+
+  @override
+  State<_ProviderAvailabilityToggle> createState() => _ProviderAvailabilityToggleState();
+}
+
+class _ProviderAvailabilityToggleState extends State<_ProviderAvailabilityToggle> {
+  late bool _isAvailable;
+  bool _isLoading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _isAvailable = widget.isAvailable;
+  }
+
+  Future<void> _toggleAvailability() async {
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      final newValue = await AuthService().toggleProviderAvailability();
+      setState(() { _isAvailable = newValue; });
+    } catch (e) {
+      setState(() { _error = e.toString(); });
+    } finally {
+      setState(() { _isLoading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _isAvailable ? 'Available for Jobs' : 'Not Available',
+              style: TextStyle(
+                color: _isAvailable ? Colors.green : Colors.red,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(width: 12),
+            _isLoading
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                : Switch(
+                    value: _isAvailable,
+                    onChanged: (_) => _toggleAvailability(),
+                    activeColor: Colors.green,
+                  ),
+          ],
+        ),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(_error!, style: const TextStyle(color: Colors.red)),
+          ),
+      ],
     );
   }
 }

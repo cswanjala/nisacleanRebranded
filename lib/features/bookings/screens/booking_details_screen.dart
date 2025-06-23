@@ -26,27 +26,38 @@ class BookingDetailsScreen extends StatefulWidget {
 }
 
 class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
-  late final List<_StepData> _steps;
-  late final int _currentStep;
+  late Booking _booking;
+  late List<_StepData> _steps;
+  late int _currentStep;
 
   @override
   void initState() {
     super.initState();
-    _steps = _buildSteps(widget.booking.status);
-    _currentStep = _getStepIndex(widget.booking.status);
+    _booking = widget.booking;
+    _steps = _buildSteps(_booking.status);
+    _currentStep = _getStepIndex(_booking.status);
+  }
+
+  Future<void> _refreshBooking() async {
+    final updated = await BookingService().getBookingById(_booking.id);
+    setState(() {
+      _booking = updated;
+      _steps = _buildSteps(_booking.status);
+      _currentStep = _getStepIndex(_booking.status);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final location = widget.booking.location.coordinates;
-    final address = widget.booking.location.address;
+    final location = _booking.location.coordinates;
+    final address = _booking.location.address;
     final lat = location.length == 2 ? location[1] : null;
     final lng = location.length == 2 ? location[0] : null;
-    final amount = widget.booking.amount ?? 0.0;
+    final amount = _booking.amount ?? 0.0;
     final formattedAmount = NumberFormat('#,##0.00', 'en_US').format(amount);
-    final status = widget.booking.status.toString().split('.').last;
-    final provider = widget.booking.worker;
+    final status = _booking.status.toString().split('.').last;
+    final provider = _booking.worker;
     final providerName = provider?.name ?? 'N/A';
     final initials = providerName.isNotEmpty ? providerName.trim().split(' ').map((e) => e[0]).take(2).join() : 'N';
 
@@ -58,7 +69,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
         actions: [
-          if (widget.booking.status == BookingStatus.pending)
+          if (_booking.status == BookingStatus.pending)
             IconButton(
               icon: const Icon(Icons.cancel_outlined),
               onPressed: () {
@@ -102,64 +113,64 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
             const SizedBox(height: 24),
             _AnimatedSection(
               child: _GlassCard(
-              child: Row(
-                children: [
+                child: Row(
+                  children: [
                     Icon(Icons.cleaning_services, color: colorScheme.primary, size: 28),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Text(
-                        widget.booking.service,
+                        _booking.service,
                         style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 20, color: colorScheme.onSurface),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 18),
             _AnimatedSection(
               child: _GlassCard(
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: colorScheme.primary,
-            child: Text(initials, style: GoogleFonts.poppins(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
-            radius: 22,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-                Text(providerName, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16, color: colorScheme.onSurface)),
-                Text('Service Provider', style: GoogleFonts.poppins(fontSize: 13, color: colorScheme.onSurface.withOpacity(0.6))),
-              ],
-            ),
-          ),
-        ],
-      ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: colorScheme.primary,
+                      child: Text(initials, style: GoogleFonts.poppins(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
+                      radius: 22,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(providerName, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16, color: colorScheme.onSurface)),
+                          Text('Service Provider', style: GoogleFonts.poppins(fontSize: 13, color: colorScheme.onSurface.withOpacity(0.6))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 18),
             _AnimatedSection(
               child: _GlassCard(
                 child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-        children: [
-          Icon(Icons.location_on, color: colorScheme.secondary, size: 22),
-          const SizedBox(width: 12),
-          Expanded(
+                      children: [
+                        Icon(Icons.location_on, color: colorScheme.secondary, size: 22),
+                        const SizedBox(width: 12),
+                        Expanded(
                           child: Text(address, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
                         ),
                       ],
                     ),
-                if (lat != null && lng != null)
-                  Padding(
+                    if (lat != null && lng != null)
+                      Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                           child: SizedBox(
                             height: 120,
                             child: GoogleMap(
@@ -177,53 +188,53 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                               myLocationButtonEnabled: false,
                               liteModeEnabled: true,
                             ),
-                    ),
-                  ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
             ),
             const SizedBox(height: 18),
             _AnimatedSection(
               child: _GlassCard(
-      child: Row(
-      children: [
-          Icon(Icons.calendar_today, color: colorScheme.secondary, size: 20),
-          const SizedBox(width: 8),
-                    Text(widget.booking.date, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
-          const SizedBox(width: 16),
-          Icon(Icons.access_time, color: colorScheme.secondary, size: 20),
-          const SizedBox(width: 8),
-                    Text(widget.booking.time, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
-        ],
-      ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today, color: colorScheme.secondary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(_booking.date, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
+                    const SizedBox(width: 16),
+                    Icon(Icons.access_time, color: colorScheme.secondary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(_booking.time, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
+                  ],
+                ),
               ),
             ),
-            if (widget.booking.notes.isNotEmpty) ...[
-              const SizedBox(height: 18),
+            const SizedBox(height: 18),
+            if (_booking.notes.isNotEmpty) ...[
               _AnimatedSection(
                 child: _GlassCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 4,
-            height: 40,
-            decoration: BoxDecoration(
-              color: colorScheme.secondary,
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-                          widget.booking.notes,
-              style: GoogleFonts.poppins(fontSize: 15, fontStyle: FontStyle.italic, color: colorScheme.onSurface.withOpacity(0.8)),
-            ),
-          ),
-        ],
-      ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: colorScheme.secondary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _booking.notes,
+                          style: GoogleFonts.poppins(fontSize: 15, fontStyle: FontStyle.italic, color: colorScheme.onSurface.withOpacity(0.8)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -238,12 +249,12 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                     const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
+                      decoration: BoxDecoration(
                         color: colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Text(_getPaymentStatus(status), style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: colorScheme.onSecondaryContainer, fontSize: 13)),
-                  ),
+                    ),
                   ],
                 ),
               ),
@@ -255,11 +266,11 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       bottomNavigationBar: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
           final isClient = authState.userType == UserType.client;
-          // DEBUG: Show userType and status
-          print('[DEBUG] BookingDetailsScreen: userType = \\${authState.userType}, status = \\"$status\\"');
+          final isWorker = authState.userType == UserType.serviceProvider;
+          print('[DEBUG] BookingDetailsScreen: userType = \\${authState.userType}, status = "${status}"');
           if (status == 'pending' && isClient) {
             return _ActionBar(
-          color: colorScheme.surface,
+              color: colorScheme.surface,
               child: Row(
                 children: [
                   const Icon(Icons.info_outline, color: Colors.orange),
@@ -288,14 +299,19 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         textStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
                   ),
-                ),
-              ),
                 ],
-        ),
-      );
-    }
-    return const SizedBox.shrink();
+              ),
+            );
+          } else if (status == 'completed' && isClient) {
+            return _CloseBookingActionBar(
+              bookingId: _booking.id,
+              onClosed: _refreshBooking,
+            );
+          }
+          return const SizedBox.shrink();
         },
       ),
       backgroundColor: colorScheme.background,
@@ -542,10 +558,71 @@ String _getPaymentStatus(String status) {
     case 'inprogress':
       return 'In Progress';
     case 'completed':
+      return 'Completed';
+    case 'closed':
       return 'Paid';
     case 'cancelled':
       return 'Cancelled';
     default:
       return status;
+  }
+}
+
+class _CloseBookingActionBar extends StatefulWidget {
+  final String bookingId;
+  final VoidCallback? onClosed;
+  const _CloseBookingActionBar({required this.bookingId, this.onClosed});
+
+  @override
+  State<_CloseBookingActionBar> createState() => _CloseBookingActionBarState();
+}
+
+class _CloseBookingActionBarState extends State<_CloseBookingActionBar> {
+  bool _isLoading = false;
+
+  Future<void> _closeBooking() async {
+    setState(() => _isLoading = true);
+    try {
+      await BookingService().markBookingAsClosed(widget.bookingId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking closed successfully!'), backgroundColor: Colors.green),
+        );
+        if (widget.onClosed != null) widget.onClosed!();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to close booking: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return _ActionBar(
+      color: colorScheme.surface,
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _isLoading ? null : _closeBooking,
+          icon: _isLoading
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.lock),
+          label: Text(_isLoading ? 'Closing...' : 'Close Booking'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            textStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ),
+    );
   }
 }
