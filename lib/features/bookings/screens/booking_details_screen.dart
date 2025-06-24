@@ -29,6 +29,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   late Booking _booking;
   late List<_StepData> _steps;
   late int _currentStep;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -113,64 +114,64 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
             const SizedBox(height: 24),
             _AnimatedSection(
               child: _GlassCard(
-                child: Row(
-                  children: [
+              child: Row(
+                children: [
                     Icon(Icons.cleaning_services, color: colorScheme.primary, size: 28),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Text(
                         _booking.service,
                         style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 20, color: colorScheme.onSurface),
-                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
               ),
             ),
             const SizedBox(height: 18),
             _AnimatedSection(
               child: _GlassCard(
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: colorScheme.primary,
-                      child: Text(initials, style: GoogleFonts.poppins(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
-                      radius: 22,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(providerName, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16, color: colorScheme.onSurface)),
-                          Text('Service Provider', style: GoogleFonts.poppins(fontSize: 13, color: colorScheme.onSurface.withOpacity(0.6))),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: colorScheme.primary,
+            child: Text(initials, style: GoogleFonts.poppins(color: colorScheme.onPrimary, fontWeight: FontWeight.bold)),
+            radius: 22,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+                Text(providerName, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16, color: colorScheme.onSurface)),
+                Text('Service Provider', style: GoogleFonts.poppins(fontSize: 13, color: colorScheme.onSurface.withOpacity(0.6))),
+              ],
+            ),
+          ),
+        ],
+      ),
               ),
             ),
             const SizedBox(height: 18),
             _AnimatedSection(
               child: _GlassCard(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      children: [
-                        Icon(Icons.location_on, color: colorScheme.secondary, size: 22),
-                        const SizedBox(width: 12),
-                        Expanded(
+        children: [
+          Icon(Icons.location_on, color: colorScheme.secondary, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
                           child: Text(address, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
                         ),
                       ],
                     ),
-                    if (lat != null && lng != null)
-                      Padding(
+                if (lat != null && lng != null)
+                  Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12),
                           child: SizedBox(
                             height: 120,
                             child: GoogleMap(
@@ -188,53 +189,53 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                               myLocationButtonEnabled: false,
                               liteModeEnabled: true,
                             ),
-                          ),
-                        ),
-                      ),
-                  ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
+            ),
+          ),
             ),
             const SizedBox(height: 18),
             _AnimatedSection(
               child: _GlassCard(
-                child: Row(
-                  children: [
-                    Icon(Icons.calendar_today, color: colorScheme.secondary, size: 20),
-                    const SizedBox(width: 8),
+      child: Row(
+      children: [
+          Icon(Icons.calendar_today, color: colorScheme.secondary, size: 20),
+          const SizedBox(width: 8),
                     Text(_booking.date, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
-                    const SizedBox(width: 16),
-                    Icon(Icons.access_time, color: colorScheme.secondary, size: 20),
-                    const SizedBox(width: 8),
+          const SizedBox(width: 16),
+          Icon(Icons.access_time, color: colorScheme.secondary, size: 20),
+          const SizedBox(width: 8),
                     Text(_booking.time, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15, color: colorScheme.onSurface)),
-                  ],
-                ),
+        ],
+      ),
               ),
             ),
-            const SizedBox(height: 18),
+              const SizedBox(height: 18),
             if (_booking.notes.isNotEmpty) ...[
               _AnimatedSection(
                 child: _GlassCard(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: colorScheme.secondary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 4,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colorScheme.secondary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
                           _booking.notes,
-                          style: GoogleFonts.poppins(fontSize: 15, fontStyle: FontStyle.italic, color: colorScheme.onSurface.withOpacity(0.8)),
-                        ),
-                      ),
-                    ],
-                  ),
+              style: GoogleFonts.poppins(fontSize: 15, fontStyle: FontStyle.italic, color: colorScheme.onSurface.withOpacity(0.8)),
+            ),
+          ),
+        ],
+      ),
                 ),
               ),
             ],
@@ -249,12 +250,12 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                     const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
+                decoration: BoxDecoration(
                         color: colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                       child: Text(_getPaymentStatus(status), style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: colorScheme.onSecondaryContainer, fontSize: 13)),
-                    ),
+                  ),
                   ],
                 ),
               ),
@@ -270,7 +271,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           print('[DEBUG] BookingDetailsScreen: userType = \\${authState.userType}, status = "${status}"');
           if (status == 'pending' && isClient) {
             return _ActionBar(
-              color: colorScheme.surface,
+          color: colorScheme.surface,
               child: Row(
                 children: [
                   const Icon(Icons.info_outline, color: Colors.orange),
@@ -299,23 +300,119 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         textStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
                   ),
-                ],
+                ),
               ),
-            );
+                ],
+        ),
+      );
           } else if (status == 'completed' && isClient) {
             return _CloseBookingActionBar(
               bookingId: _booking.id,
               onClosed: _refreshBooking,
             );
-          }
-          return const SizedBox.shrink();
+    }
+    return const SizedBox.shrink();
         },
       ),
       backgroundColor: colorScheme.background,
     );
+  }
+
+  Future<void> _closeBookingAndReview() async {
+    setState(() => _isLoading = true);
+    try {
+      await BookingService().markBookingAsClosed(_booking.id);
+      if (mounted) {
+        // Show review dialog
+        double rating = 0;
+        String review = '';
+        bool submitting = false;
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) {
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return AlertDialog(
+                  title: const Text('Leave a Review'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (i) => IconButton(
+                          icon: Icon(
+                            i < rating ? Icons.star : Icons.star_border,
+                            color: Colors.amber,
+                            size: 32,
+                          ),
+                          onPressed: () => setState(() => rating = i + 1.0),
+                        )),
+                      ),
+                      TextField(
+                        minLines: 2,
+                        maxLines: 4,
+                        decoration: const InputDecoration(
+                          labelText: 'Your review',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (val) => review = val,
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: submitting ? null : () => Navigator.pop(ctx),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: submitting || rating == 0 || review.trim().isEmpty
+                          ? null
+                          : () async {
+                              setState(() => submitting = true);
+                              try {
+                                await BookingService().submitReview(
+                                  bookingId: _booking.id,
+                                  rating: rating,
+                                  review: review.trim(),
+                                );
+                                if (mounted) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Review submitted!'), backgroundColor: Colors.green),
+                                  );
+                                }
+                              } catch (e) {
+                                setState(() => submitting = false);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Failed to submit review: $e'), backgroundColor: Colors.red),
+                                  );
+                                }
+                              }
+                            },
+                      child: submitting
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Submit'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to close booking: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 }
 

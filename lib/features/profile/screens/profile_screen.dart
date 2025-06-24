@@ -39,40 +39,40 @@ class ProfileScreen extends StatelessWidget {
               final providerEmail = provider['email'] ?? email;
               final providerPhone = provider['phone'] ?? phone;
               final bool isAvailable = provider['isAvailable'] == true || false;
-              return Scaffold(
-                backgroundColor: Theme.of(context).colorScheme.background,
-                body: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 40),
-                        Center(
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width: 110,
-                                height: 110,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(
-                                    colors: [blue.withOpacity(0.5), Colors.transparent],
-                                    radius: 0.6,
-                                    center: Alignment.center,
-                                  ),
-                                ),
-                              ),
-                              const CircleAvatar(
-                                radius: 45,
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const SizedBox(height: 40),
+              Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 110,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [blue.withOpacity(0.5), Colors.transparent],
+                          radius: 0.6,
+                          center: Alignment.center,
+                        ),
+                      ),
+                    ),
+                    const CircleAvatar(
+                      radius: 45,
                                 child: Icon(Icons.person, size: 48, color: Colors.white),
                                 backgroundColor: Color(0xFF1E88E5),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
                           providerName,
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Colors.white,
@@ -172,16 +172,16 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     name,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
                     email,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
-                  ),
+              ),
                   const SizedBox(height: 24),
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -204,33 +204,33 @@ class ProfileScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  _buildInfoSection(context, 'Personal Information', blue, [
+              const SizedBox(height: 24),
+              _buildInfoSection(context, 'Personal Information', blue, [
                     _InfoItem(icon: Icons.email, label: email),
                     _InfoItem(icon: Icons.phone, label: phone),
                   ], name: name, phone: phone),
-                  const SizedBox(height: 24),
-                  _buildInfoSection(context, 'Utilities', blue, [
-                    _NavItem(icon: Icons.settings, label: 'Settings', onTap: () {}),
-                    _NavItem(icon: Icons.language, label: 'Language', onTap: () {}),
-                    _NavItem(
-                      icon: Icons.help_outline,
-                      label: 'Ask Help-Desk',
-                      onTap: () {},
-                    ),
-                    _NavItem(
-                      icon: Icons.logout,
-                      label: 'Log-Out',
+              const SizedBox(height: 24),
+              _buildInfoSection(context, 'Utilities', blue, [
+                _NavItem(icon: Icons.settings, label: 'Settings', onTap: () {}),
+                _NavItem(icon: Icons.language, label: 'Language', onTap: () {}),
+                _NavItem(
+                  icon: Icons.help_outline,
+                  label: 'Ask Help-Desk',
+                  onTap: () {},
+                ),
+                _NavItem(
+                  icon: Icons.logout,
+                  label: 'Log-Out',
                       onTap: () {
                         context.read<AuthBloc>().add(LogoutRequested());
                         Navigator.pushReplacementNamed(context, '/login');
                       },
-                    ),
-                  ]),
-                ],
-              ),
-            ),
+                ),
+              ]),
+            ],
           ),
+        ),
+      ),
         );
       },
     );

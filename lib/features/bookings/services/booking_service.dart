@@ -283,12 +283,24 @@ class BookingService {
     final response = await http.get(uri, headers: headers);
     final data = jsonDecode(response.body);
     print('Get available providers response: \\${response.statusCode} - \\${response.body}');
-    if (response.statusCode == 200 && data['success'] == true) {
-      final providers = data['data'] as List;
-      return providers.map((e) => Map<String, dynamic>.from(e)).toList();
-    } else {
-      throw data['message'] ?? 'Failed to fetch providers';
+    // Handle raw array response
+    if (response.statusCode == 200 && data is List) {
+      return data.map((e) => Map<String, dynamic>.from(e)).toList();
     }
+    // Handle envelope response
+    if (response.statusCode == 200 && data is Map && data['success'] == true && data['data'] is List) {
+      final providers = data['data'] as List;
+      // If the list contains strings, wrap them in a map
+      if (providers.isNotEmpty && providers.first is String) {
+        return providers.map((id) => {'_id': id}).toList();
+      }
+      // Otherwise, assume it's a list of maps
+      return providers.map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+    // Otherwise, error
+    throw (data is Map && data['message'] != null)
+        ? data['message']
+        : 'Failed to fetch providers';
   }
 
   // Fetch all available service providers

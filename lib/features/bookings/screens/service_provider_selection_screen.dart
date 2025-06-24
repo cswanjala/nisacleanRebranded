@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
 import 'package:nisacleanv1/features/bookings/models/booking.dart';
+import 'dart:convert';
 
 class ServiceProviderSelectionScreen extends StatefulWidget {
   final Map<String, dynamic> bookingDetails;
@@ -43,13 +44,28 @@ class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectio
         lng: coords[0],
         lat: coords[1],
       );
-      setState(() {
-        _providers = providers;
-      });
+      if (providers is List<Map<String, dynamic>>) {
+        setState(() {
+          _providers = providers;
+        });
+      } else {
+        setState(() {
+          _providers = [];
+        });
+        print('Providers is not a list: '
+            + providers.toString());
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No providers found.'), backgroundColor: Colors.red),
+          );
+        }
+      }
     } catch (e) {
       setState(() {
         _providers = [];
       });
+      print('Error fetching providers: '
+          + e.toString());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error fetching providers: $e'), backgroundColor: Colors.red),
@@ -266,10 +282,12 @@ class _ServiceProviderSelectionScreenState extends State<ServiceProviderSelectio
           itemCount: _providers.length,
           itemBuilder: (context, index) {
             final provider = _providers[index];
-            // Prefer name/id from user subfield if not present at top level
-            final name = (provider['name'] as String?)?.isNotEmpty == true
-              ? provider['name']
-              : (provider['user']?['name'] as String?) ?? 'Unknown';
+            print('DEBUG: Provider object in list: ' + provider.toString());
+            // Always use provider['user']['name'] if available
+            String name = 'Unknown';
+            if (provider['user'] != null && provider['user'] is Map && provider['user']['name'] != null && provider['user']['name'].toString().isNotEmpty) {
+              name = provider['user']['name'].toString();
+            }
             final id = (provider['_id'] as String?)?.isNotEmpty == true
               ? provider['_id']
               : (provider['user']?['_id'] as String?) ?? '';
@@ -359,10 +377,12 @@ class _ProviderExpansionTileState extends State<_ProviderExpansionTile> {
   @override
   Widget build(BuildContext context) {
     final provider = widget.provider;
-    // Prefer name/id from user subfield if not present at top level
-    final name = (provider['name'] as String?)?.isNotEmpty == true
-      ? provider['name']
-      : (provider['user']?['name'] as String?) ?? 'Unknown';
+    print('DEBUG: Provider object in tile: ' + provider.toString());
+    // Always use provider['user']['name'] if available
+    String name = 'Unknown';
+    if (provider['user'] != null && provider['user'] is Map && provider['user']['name'] != null && provider['user']['name'].toString().isNotEmpty) {
+      name = provider['user']['name'].toString();
+    }
     final id = (provider['_id'] as String?)?.isNotEmpty == true
       ? provider['_id']
       : (provider['user']?['_id'] as String?) ?? '';
