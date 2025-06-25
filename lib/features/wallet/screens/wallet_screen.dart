@@ -31,6 +31,7 @@ class _WalletScreenState extends State<WalletScreen>
   String? _txError;
 
   String? _phoneNumber;
+  String? _userName;
   bool _isProfileLoading = true;
   String? _profileError;
   bool _showBalance = false;
@@ -38,7 +39,7 @@ class _WalletScreenState extends State<WalletScreen>
   int _txCount = 0;
 
   String _selectedType = 'All';
-  final List<String> _types = ['All', 'Deposit', 'Escrow', 'Payment'];
+  final List<String> _types = ['All', 'Deposit', 'Escrow'];
 
   bool _isDepositing = false;
 
@@ -69,6 +70,7 @@ class _WalletScreenState extends State<WalletScreen>
       if (!mounted) return;
       setState(() {
         _phoneNumber = user['phone'] ?? '';
+        _userName = user['name'] ?? '';
         _isProfileLoading = false;
       });
     } catch (e) {
@@ -187,7 +189,7 @@ class _WalletScreenState extends State<WalletScreen>
                                   ),
                                 ),
                                 Text(
-                                  _isProfileLoading ? 'Loading...' : (_profileError != null ? 'User' : _phoneNumber ?? '-'),
+                                  _isProfileLoading ? 'Loading...' : (_profileError != null ? 'User' : _userName ?? '-'),
                     style: TextStyle(
                                     fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -590,8 +592,7 @@ class _WalletScreenState extends State<WalletScreen>
     final filteredTxs = _transactions.where((tx) {
       final matchesType = _selectedType == 'All' ||
           (_selectedType == 'Deposit' && tx['type'] == 'deposit') ||
-          (_selectedType == 'Escrow' && tx['type'] == 'escrow') ||
-          (_selectedType == 'Payment' && tx['type'] == 'payment');
+          (_selectedType == 'Escrow' && tx['type'] == 'escrow');
       final matchesDate = _selectedDate == null ||
         (() {
           final createdAt = tx['createdAt']?.toString();
@@ -600,7 +601,9 @@ class _WalletScreenState extends State<WalletScreen>
           if (txDate == null) return false;
           return txDate.year == _selectedDate!.year && txDate.month == _selectedDate!.month && txDate.day == _selectedDate!.day;
         })();
-      return matchesType && matchesDate;
+      // Only show outgoing transactions (debit), exclude incoming transactions (credit)
+      final isOutgoing = tx['direction'] == 'debit';
+      return matchesType && matchesDate && isOutgoing;
     }).toList();
 
     // Group filtered transactions by date
@@ -766,7 +769,7 @@ class _WalletScreenState extends State<WalletScreen>
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              (isCredit ? '+' : '-') + 'KES ' + amount.toStringAsFixed(2),
+              (isCredit ? '+' : '-') + 'KES ' + NumberFormat('#,##0.00').format(amount),
               style: TextStyle(
                 color: isCredit ? Colors.green : Colors.red,
                 fontWeight: FontWeight.bold,

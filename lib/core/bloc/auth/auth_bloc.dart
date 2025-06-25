@@ -64,18 +64,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         role = 'worker';
       }
       
-      await _authService.register(
+      final registerResponse = await _authService.register(
         name: event.name,
         email: event.email,
-        phone: event.phone ?? '', // Add phone field if needed
+        phone: event.phone ?? '',
         password: event.password,
         role: role,
       );
-      
-      // Registration successful, but user needs to login
+      // Extract userId from backend response
+      String? userId;
+      if (registerResponse['data'] != null) {
+        if (registerResponse['data'] is Map && registerResponse['data']['_id'] != null) {
+          userId = registerResponse['data']['_id'].toString();
+        } else if (registerResponse['data'] is Map && registerResponse['data']['user'] != null && registerResponse['data']['user']['_id'] != null) {
+          userId = registerResponse['data']['user']['_id'].toString();
+        }
+      }
       emit(state.copyWith(
         isLoading: false,
         error: null,
+        userId: userId,
       ));
       
       // You might want to automatically login after registration

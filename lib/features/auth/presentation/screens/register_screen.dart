@@ -4,6 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/bloc/auth/auth_bloc.dart';
 import '../../../../core/bloc/auth/auth_event.dart';
 import '../../../../core/bloc/auth/auth_state.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -53,9 +56,14 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state.isAuthenticated) {
-          Navigator.pushReplacementNamed(context, '/home');
+          if (_selectedUserType == UserType.serviceProvider) {
+            await _showProviderDetailsDialog(context, state.userId!);
+            Navigator.pushReplacementNamed(context, '/home');
+          } else {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
         }
         if (!state.isLoading && state.error == null && !state.isAuthenticated) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -408,6 +416,150 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _showProviderDetailsDialog(BuildContext context, String userId) async {
+    final _idNumberController = TextEditingController();
+    List<XFile> _pickedFiles = [];
+    final picker = ImagePicker();
+    bool submitting = false;
+    String? error;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text('Complete Provider Profile', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _idNumberController,
+                    decoration: const InputDecoration(
+                      labelText: 'ID Number',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Upload at least 2 ID Documents'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ..._pickedFiles.map((file) => Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          Image.file(File(file.path), width: 80, height: 80, fit: BoxFit.cover),
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 18, color: Colors.red),
+                            onPressed: () {
+                              setState(() {
+                                _pickedFiles.remove(file);
+                              });
+                            },
+                          ),
+                        ],
+                      )),
+                      if (_pickedFiles.length < 5)
+                        GestureDetector(
+                          onTap: () async {
+                            final picked = await picker.pickMultiImage();
+                            if (picked != null && picked.isNotEmpty) {
+                              setState(() {
+                                _pickedFiles.addAll(picked.take(5 - _pickedFiles.length));
+                              });
+                            }
+                          },
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey[400]!),
+                            ),
+                            child: const Icon(Icons.add_a_photo, size: 32, color: Colors.grey),
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(error!, style: const TextStyle(color: Colors.red)),
+                    ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: submitting
+                              ? null
+                              : () async {
+                                  if (_idNumberController.text.isEmpty || _pickedFiles.length < 2) {
+                                    setState(() => error = 'Please provide ID number and at least 2 documents.');
+                                    return;
+                                  }
+                                  setState(() {
+                                    submitting = true;
+                                    error = null;
+                                  });
+                                  // Prepare multipart request
+                                  var request = http.MultipartRequest('POST', Uri.parse('https://your-backend-url.com/api/provider/create'));
+                                  request.fields['userId'] = userId;
+                                  request.fields['idNumber'] = _idNumberController.text;
+                                  for (var i = 0; i < _pickedFiles.length; i++) {
+                                    request.files.add(await http.MultipartFile.fromPath('idDocs', _pickedFiles[i].path));
+                                  }
+                                  // TODO: Add auth header if needed
+                                  var response = await request.send();
+                                  if (response.statusCode == 200) {
+                                    Navigator.pop(ctx);
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Provider profile completed!'), backgroundColor: Colors.green));
+                                  } else {
+                                    setState(() => error = 'Failed to submit provider details.');
+                                  }
+                                  setState(() => submitting = false);
+                                },
+                          child: submitting
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Text('Submit'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 } 

@@ -11,6 +11,7 @@ class AuthState extends Equatable {
   final String? phone;
   final String? token;
   final String? error;
+  final String? userId;
 
   const AuthState({
     this.isAuthenticated = false,
@@ -21,6 +22,7 @@ class AuthState extends Equatable {
     this.phone,
     this.token,
     this.error,
+    this.userId,
   });
 
   AuthState copyWith({
@@ -32,6 +34,7 @@ class AuthState extends Equatable {
     String? phone,
     String? token,
     String? error,
+    String? userId,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
@@ -42,9 +45,10 @@ class AuthState extends Equatable {
       phone: phone ?? this.phone,
       token: token ?? this.token,
       error: error ?? this.error,
+      userId: userId ?? this.userId,
     );
   }
 
   @override
-  List<Object?> get props => [isAuthenticated, isLoading, userType, name, email, phone, token, error];
+  List<Object?> get props => [isAuthenticated, isLoading, userType, name, email, phone, token, error, userId];
 } 
