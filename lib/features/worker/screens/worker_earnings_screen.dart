@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nisacleanv1/core/constants/api_constants.dart';
+import 'package:intl/intl.dart';
 
 class WorkerEarningsScreen extends StatefulWidget {
   const WorkerEarningsScreen({super.key});
@@ -141,10 +142,10 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
   Widget _buildEarningsHeader(BuildContext context) {
     final rating = _earningsData?['rating'] ?? 0;
     final daysActive = _earningsData?['daysActive'] ?? 0;
-    final totalRevenue = _earningsData?['totalRevenue'] ?? 0;
+    final totalRevenue = NumberFormat('#,##0.00').format((_earningsData?['totalRevenue'] ?? 0).toDouble());
     final totalBookings = _earningsData?['totalBookings'] ?? 0;
     final completedBookings = _earningsData?['totalCompleted'] ?? 0;
-    final averageRevenuePerJob = _earningsData?['averageRevenuePerJob'] ?? 0;
+    final averageRevenuePerJob = NumberFormat('#,##0.00').format((_earningsData?['averageRevenuePerJob'] ?? 0).toDouble());
     final averageBookingDuration = _earningsData?['averageBookingDuration'] ?? 0;
 
     return Container(
@@ -318,6 +319,8 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
   }
 
   Widget _buildTrendRow(String period, int revenue, int revenueLast, num revenueChange, int bookings, int bookingsLast, num bookingsChange, {int? avgDuration, int? avgDurationLast, num? avgDurationChange}) {
+    final formattedRevenue = NumberFormat('#,##0.00').format(revenue.toDouble());
+    final formattedRevenueLast = NumberFormat('#,##0.00').format(revenueLast.toDouble());
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -333,9 +336,9 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
             children: [
               Icon(Icons.payments, color: Colors.green, size: 18),
               const SizedBox(width: 4),
-              Text('Revenue: KES $revenue', style: GoogleFonts.poppins(color: Colors.white70)),
+              Text('Revenue: KES $formattedRevenue', style: GoogleFonts.poppins(color: Colors.white70)),
               const SizedBox(width: 8),
-              Text('(Prev: KES $revenueLast)', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12)),
+              Text('(Prev: KES $formattedRevenueLast)', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12)),
               const SizedBox(width: 8),
               Icon(revenueChange >= 0 ? Icons.trending_up : Icons.trending_down, color: revenueChange >= 0 ? Colors.green : Colors.red, size: 18),
               Text('${revenueChange >= 0 ? '+' : ''}${revenueChange.toString()}%', style: GoogleFonts.poppins(color: revenueChange >= 0 ? Colors.green : Colors.red)),
@@ -593,20 +596,81 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                               ),
                                     ),
                                   ),
-                                  if (booking.isNotEmpty) ...[
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      child: Text(
-                                        'Booking: $booking',
-                              style: GoogleFonts.poppins(
-                                          color: Colors.white54,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
                                 ],
                             ),
+                            // Add client/payer info if available
+                            if (direction.toLowerCase() == 'credit') ...[
+                              Builder(
+                                builder: (context) {
+                                  final client = transaction['client'] ?? transaction['user'] ?? transaction['paidBy'];
+                                  String? clientName;
+                                  if (client is Map) {
+                                    clientName = client['name'] ?? client['username'] ?? client['fullName'];
+                                  } else if (client != null) {
+                                    clientName = client.toString();
+                                  }
+                                  // Filter out likely IDs (hex strings, UUIDs, etc.)
+                                  if (clientName != null && clientName.isNotEmpty) {
+                                    final isLikelyId = RegExp(r'^[a-fA-F0-9]{16,}$|^[0-9a-fA-F-]{24,}$').hasMatch(clientName);
+                                    if (!isLikelyId) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 2.0),
+                                        child: Text(
+                                          'Money received from $clientName',
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.greenAccent,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 2.0),
+                                    child: Text(
+                                      'Money received from a client',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.greenAccent,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ] else if (direction.toLowerCase() == 'debit') ...[
+                              Builder(
+                                builder: (context) {
+                                  final client = transaction['client'] ?? transaction['user'] ?? transaction['paidTo'];
+                                  final clientName = client is Map ? (client['name'] ?? client['fullName'] ?? client['username']) : client?.toString();
+                                  if (clientName != null && clientName.isNotEmpty) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 2.0),
+                                      child: Text(
+                                        'Payment to $clientName',
+                              style: GoogleFonts.poppins(
+                                          color: Colors.orangeAccent,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 2.0),
+                                    child: Text(
+                                      'Payment sent',
+                              style: GoogleFonts.poppins(
+                                        color: Colors.orangeAccent,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                             const SizedBox(height: 2),
                             Text(
                                 formattedDate,
@@ -623,7 +687,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                              'KES ${amount.toStringAsFixed(2)}',
+                              'KES ${NumberFormat('#,##0.00').format(amount)}',
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.bold,
                                 color: _getWorkerTransactionAmountColor(type, direction),

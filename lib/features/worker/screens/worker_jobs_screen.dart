@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
 import 'package:nisacleanv1/features/bookings/models/booking.dart';
 import 'package:nisacleanv1/features/bookings/screens/booking_details_screen.dart';
+import 'package:intl/intl.dart';
 
 class WorkerJobsScreen extends StatefulWidget {
   const WorkerJobsScreen({super.key});
@@ -204,8 +205,8 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
     final date = job['date'] ?? '';
     final time = job['time'] ?? '';
     final amount = status == BookingStatus.inprogress && job['invoiceAmount'] != null
-        ? (job['invoiceAmount'] as num).toStringAsFixed(2)
-        : ((job['amount'] ?? 0) as num).toStringAsFixed(2);
+        ? NumberFormat('#,##0.00').format((job['invoiceAmount'] as num).toDouble())
+        : NumberFormat('#,##0.00').format(((job['amount'] ?? 0) as num).toDouble());
     final statusColor = _getStatusColor(status);
     final statusText = status.name.replaceAll('inprogress', 'In Progress').toUpperCase();
 
@@ -335,29 +336,7 @@ class _WorkerJobsScreenState extends State<WorkerJobsScreen> {
                   ),
                   Row(
                     children: [
-                      if (status == BookingStatus.pending)
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            _showStatusUpdateDialog(
-                              context,
-                              job['id'],
-                              'Start Job',
-                              'Are you sure you want to start this job?',
-                              'inprogress',
-                            );
-                          },
-                          icon: const Icon(Icons.play_arrow, size: 18),
-                          label: const Text('Start'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.green[700],
-                            side: BorderSide(color: Colors.green[700]!),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500),
-                          ),
-                        )
-                      else if (status == BookingStatus.inprogress)
+                      if (status == BookingStatus.inprogress)
                         OutlinedButton.icon(
                           onPressed: () async {
                             final confirm = await showDialog<bool>(
