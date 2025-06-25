@@ -149,59 +149,117 @@ class _WalletScreenState extends State<WalletScreen>
           slivers: [
             SliverAppBar(
               pinned: true,
-              expandedHeight: 160,
+              expandedHeight: 180,
               backgroundColor: colorScheme.background,
+              elevation: 0,
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        colorScheme.primary.withOpacity(0.12),
-                        colorScheme.primary.withOpacity(0.04),
+                        colorScheme.primary.withOpacity(0.15),
+                        colorScheme.primary.withOpacity(0.05),
+                        colorScheme.background,
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
+                      stops: const [0.0, 0.7, 1.0],
                     ),
                   ),
                   child: SafeArea(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          CircleAvatar(
-                            radius: 28,
-                            backgroundColor: colorScheme.primary.withOpacity(0.15),
-                            child: Icon(Icons.account_circle, size: 38, color: colorScheme.primary),
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  colorScheme.primary,
+                                  colorScheme.primary.withOpacity(0.8),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(32),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorScheme.primary.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: CircleAvatar(
+                              radius: 32,
+                              backgroundColor: Colors.transparent,
+                              child: Icon(
+                                Icons.account_circle,
+                                size: 42,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 20),
                           Expanded(
-          child: Column(
+                            child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                  'Hello!',
+                                  'Welcome back!',
                                   style: TextStyle(
-                                    fontSize: 15,
+                                    fontSize: 14,
                                     color: colorScheme.primary,
                                     fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
+                                const SizedBox(height: 4),
                                 Text(
-                                  _isProfileLoading ? 'Loading...' : (_profileError != null ? 'User' : _userName ?? '-'),
-                    style: TextStyle(
-                                    fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                                  _isProfileLoading 
+                                    ? 'Loading...' 
+                                    : (_profileError != null ? 'User' : _userName ?? 'Guest'),
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
                                     color: colorScheme.onBackground,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Manage your wallet & transactions',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: colorScheme.onBackground.withOpacity(0.6),
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          IconButton(
-                            icon: Icon(Icons.notifications_none, color: colorScheme.primary),
-                            onPressed: () {},
+                          Container(
+                            decoration: BoxDecoration(
+                              color: colorScheme.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.notifications_none,
+                                color: colorScheme.primary,
+                                size: 24,
+                              ),
+                              onPressed: () {},
+                            ),
                           ),
                         ],
                       ),
@@ -240,9 +298,9 @@ class _WalletScreenState extends State<WalletScreen>
                   ],
                 ),
               ),
-                  ),
-                ],
-              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -262,44 +320,89 @@ class _WalletScreenState extends State<WalletScreen>
                 baseColor: colorScheme.surface,
                 highlightColor: colorScheme.primary.withOpacity(0.1),
                 child: Container(
-                  height: 90,
+                  height: 100,
                   decoration: BoxDecoration(
                     color: colorScheme.surface,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   margin: const EdgeInsets.symmetric(vertical: 4),
                 ),
               )
             : _balanceError != null || _profileError != null
                 ? Container(
-                    height: 90,
+                    height: 100,
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Center(
                       child: _buildLottieError(_balanceError ?? _profileError!),
                     ),
                   )
-                : Card(
-                    color: colorScheme.primary,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                : Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          colorScheme.primary,
+                          colorScheme.primary.withOpacity(0.9),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.primary.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 28),
                       child: Row(
                         children: [
-                          Icon(Icons.account_balance_wallet, color: Colors.white, size: 32),
-                          const SizedBox(width: 18),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.account_balance_wallet,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   'Available Balance',
-                                  style: TextStyle(fontSize: 13, color: Colors.white70),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 6),
                                 AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 400),
                                   child: _showBalance
@@ -307,24 +410,36 @@ class _WalletScreenState extends State<WalletScreen>
                                           'KES ${NumberFormat('#,##0.00').format(_balance ?? 0.0)}',
                                           key: const ValueKey('balance'),
                                           style: const TextStyle(
-                                            fontSize: 24,
+                                            fontSize: 26,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.white,
+                                            letterSpacing: -0.5,
                                           ),
                                         )
                                       : Container(
                                           key: const ValueKey('hidden'),
-                                          height: 28,
-                                          width: 120,
-                                          color: Colors.white24,
+                                          height: 32,
+                                          width: 140,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
                                         ),
                                 ),
                               ],
                             ),
                           ),
-                          Icon(
-                            _showBalance ? Icons.visibility : Icons.visibility_off,
-                            color: Colors.white70,
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              _showBalance ? Icons.visibility : Icons.visibility_off,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         ],
                       ),
@@ -335,24 +450,78 @@ class _WalletScreenState extends State<WalletScreen>
   }
 
   Widget _buildActionRow(ColorScheme colorScheme) {
-    // Small, pill-shaped, right-aligned button
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        ElevatedButton.icon(
-          icon: const Icon(Icons.mobile_friendly, size: 20),
-          label: const Text('Deposit'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: colorScheme.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
-            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            shape: StadiumBorder(),
-            elevation: 2,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.mobile_friendly, size: 18),
+              label: const Text('Deposit'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 2,
+                shadowColor: colorScheme.primary.withOpacity(0.3),
+              ),
+              onPressed: _isDepositing ? null : _showDepositBottomSheet,
+            ),
           ),
-          onPressed: _isDepositing ? null : _showDepositBottomSheet,
-        ),
-      ],
+          const SizedBox(width: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colorScheme.outline.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.history,
+                color: colorScheme.primary,
+                size: 20,
+              ),
+              onPressed: () {
+                // TODO: Navigate to transaction history
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colorScheme.outline.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.help_outline,
+                color: colorScheme.primary,
+                size: 20,
+              ),
+              onPressed: () {
+                // TODO: Show help/support
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -364,81 +533,166 @@ class _WalletScreenState extends State<WalletScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 24, right: 24,
-                top: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40, height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Icon(Icons.mobile_friendly, color: colorScheme.primary),
-                      const SizedBox(width: 8),
-                      Text('Deposit to Mpesa', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  TextField(
-                    controller: controller,
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(
-                      labelText: 'Amount (KES)',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      errorText: errorMsg,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: isLoading
-                          ? null
-                          : () async {
-                              final value = double.tryParse(controller.text);
-                              if (value == null || value <= 0) {
-                                setModalState(() => errorMsg = 'Enter a valid amount');
-                                return;
-                              }
-                              setModalState(() {
-                                isLoading = true;
-                                errorMsg = null;
-                              });
-                              final result = await _depositToMpesaModal(value, ctx, setModalState);
-                              if (result) Navigator.pop(ctx);
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: isLoading
-                          ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Deposit'),
-                    ),
+            return Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, -5),
                   ),
                 ],
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 24, right: 24,
+                  top: 24,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40, height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.mobile_friendly,
+                            color: colorScheme.primary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Deposit to Mpesa',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                              Text(
+                                'Add funds to your wallet',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: colorScheme.onSurface.withOpacity(0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Amount (KES)',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: controller,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        hintText: 'Enter amount (e.g., 1000)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.3)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.3)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colorScheme.error),
+                        ),
+                        filled: true,
+                        fillColor: colorScheme.surface,
+                        prefixIcon: Icon(
+                          Icons.attach_money,
+                          color: colorScheme.primary,
+                        ),
+                        errorText: errorMsg,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                final value = double.tryParse(controller.text);
+                                if (value == null || value <= 0) {
+                                  setModalState(() => errorMsg = 'Enter a valid amount');
+                                  return;
+                                }
+                                setModalState(() {
+                                  isLoading = true;
+                                  errorMsg = null;
+                                });
+                                final result = await _depositToMpesaModal(value, ctx, setModalState);
+                                if (result) Navigator.pop(ctx);
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
+                          shadowColor: colorScheme.primary.withOpacity(0.3),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Text('Deposit Now'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -541,25 +795,56 @@ class _WalletScreenState extends State<WalletScreen>
   }
 
   Widget _buildTabs(ColorScheme colorScheme) {
-    return TabBar(
-      controller: _tabController,
-      indicatorColor: colorScheme.primary,
-      labelColor: colorScheme.primary,
-      unselectedLabelColor: Colors.grey,
-      labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-      tabs: [
-        badges.Badge(
-          showBadge: _txCount > 0,
-          badgeContent: Text(_txCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 10)),
-          child: const Tab(text: 'Transactions'),
-        ),
-        badges.Badge(
-          showBadge: _pendingCount > 0,
-          badgeContent: Text(_pendingCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 10)),
-          child: const Tab(text: 'Pending'),
-        ),
-        const Tab(text: 'Statements'),
-      ],
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicatorColor: colorScheme.primary,
+        indicatorWeight: 3,
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: colorScheme.primary,
+        unselectedLabelColor: colorScheme.onSurface.withOpacity(0.6),
+        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        dividerColor: Colors.transparent,
+        tabs: [
+          badges.Badge(
+            showBadge: _txCount > 0,
+            badgeContent: Text(
+              _txCount.toString(),
+              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+            badgeStyle: badges.BadgeStyle(
+              badgeColor: colorScheme.primary,
+              padding: const EdgeInsets.all(4),
+            ),
+            child: const Tab(text: 'Transactions'),
+          ),
+          badges.Badge(
+            showBadge: _pendingCount > 0,
+            badgeContent: Text(
+              _pendingCount.toString(),
+              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+            badgeStyle: badges.BadgeStyle(
+              badgeColor: Colors.orange,
+              padding: const EdgeInsets.all(4),
+            ),
+            child: const Tab(text: 'Pending'),
+          ),
+          const Tab(text: 'Statements'),
+        ],
+      ),
     );
   }
 
@@ -739,58 +1024,122 @@ class _WalletScreenState extends State<WalletScreen>
     }
     final type = tx['type']?.toString();
     String title = type != null ? type[0].toUpperCase() + type.substring(1) : 'Transaction';
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      color: colorScheme.surface,
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: isCredit ? Colors.green.withOpacity(0.15) : Colors.red.withOpacity(0.15),
-          child: Icon(isCredit ? Icons.arrow_downward : Icons.arrow_upward, color: isCredit ? Colors.green : Colors.red),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    
+    // Status color mapping
+    Color statusColor;
+    switch (status.toLowerCase()) {
+      case 'completed':
+        statusColor = Colors.green;
+        break;
+      case 'pending':
+        statusColor = Colors.orange;
+        break;
+      case 'failed':
+        statusColor = Colors.red;
+        break;
+      default:
+        statusColor = colorScheme.primary;
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
-            Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
-            if (partyLabel != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 2.0),
-                child: Text(
-                  partyLabel,
-                  style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withOpacity(0.7)),
-                ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isCredit 
+                  ? Colors.green.withOpacity(0.15) 
+                  : Colors.red.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
               ),
-          ],
-        ),
-        subtitle: Text(_formatTime(tx['createdAt']), style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7))),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              (isCredit ? '+' : '-') + 'KES ' + NumberFormat('#,##0.00').format(amount),
-              style: TextStyle(
+              child: Icon(
+                isCredit ? Icons.arrow_downward : Icons.arrow_upward,
                 color: isCredit ? Colors.green : Colors.red,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+                size: 20,
               ),
             ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                      fontSize: 15,
+                    ),
+                  ),
+                  if (partyLabel != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      partyLabel,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: colorScheme.onSurface.withOpacity(0.7),
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatTime(tx['createdAt']),
+                    style: TextStyle(
+                      color: colorScheme.onSurface.withOpacity(0.6),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
               ),
-          child: Text(
-                status,
-                style: TextStyle(
-                  color: colorScheme.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  (isCredit ? '+' : '-') + 'KES ' + NumberFormat('#,##0.00').format(amount),
+                  style: TextStyle(
+                    color: isCredit ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: statusColor.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    status,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
