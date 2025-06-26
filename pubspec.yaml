@@ -56,6 +56,7 @@ dependencies:
   lottie: ^2.7.0
   pdf: ^3.10.4
   printing: ^5.12.0
+  flutter_riverpod: ^2.6.1
   
 
 dev_dependencies:
