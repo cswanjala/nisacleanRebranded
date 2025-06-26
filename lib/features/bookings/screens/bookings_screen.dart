@@ -3,6 +3,7 @@ import 'package:nisacleanv1/features/bookings/screens/new_booking_screen.dart';
 import 'package:nisacleanv1/features/bookings/screens/booking_details_screen.dart';
 import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
 import 'package:nisacleanv1/features/bookings/models/booking.dart';
+import 'dart:ui';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
@@ -78,61 +79,37 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Bookings'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadBookings,
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Pending'),
-            Tab(text: 'In Progress'),
-            Tab(text: 'Completed'),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildModernAppBar(context),
+            TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'Pending'),
+                Tab(text: 'In Progress'),
+                Tab(text: 'Completed'),
+              ],
+            ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? _buildErrorState()
+                      : RefreshIndicator(
+                          onRefresh: _loadBookings,
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              _buildJobList(context, BookingStatus.pending),
+                              _buildJobList(context, BookingStatus.inprogress),
+                              _buildJobList(context, BookingStatus.completed),
+                            ],
+                          ),
+                        ),
+            ),
           ],
         ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Error loading bookings',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _error!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadBookings,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : TabBarView(
-        controller: _tabController,
-        children: [
-          _buildBookingList('pending'),
-                    _buildBookingList('inprogress'),
-          _buildBookingList('completed'),
-        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -152,8 +129,102 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildBookingList(String status) {
-    final filteredBookings = _getFilteredBookings(status);
+  Widget _buildModernAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 18),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                height: 90,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.primary.withOpacity(0.10),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(Icons.calendar_today, color: Colors.white, size: 28),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: Text(
+                    'My Bookings',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.filter_list, color: Colors.white, size: 24),
+                  onPressed: () {
+                    // TODO: Show filter options
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white, size: 24),
+                  onPressed: _loadBookings,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Error loading bookings',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _error!,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadBookings,
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJobList(BuildContext context, BookingStatus status) {
+    final filteredBookings = _getFilteredBookings(status.toString().split('.').last);
 
     if (filteredBookings.isEmpty) {
       return Center(
@@ -167,7 +238,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
             ),
             const SizedBox(height: 16),
             Text(
-              'No ${status.toLowerCase()} bookings',
+              'No ${status.toString().toLowerCase()} bookings',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],

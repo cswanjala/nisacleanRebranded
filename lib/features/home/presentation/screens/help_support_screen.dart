@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui';
 
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
@@ -48,52 +49,108 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Help & Support',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+      body: SafeArea(
+        child: ListView(
+          children: [
+            _buildModernAppBar(context),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildSectionTitle('Frequently Asked Questions'),
+                  ..._faqs.map((faq) => _buildFaqTile(faq['question']!, faq['answer']!)).toList(),
+                  const Divider(),
+                  _buildSectionTitle('Contact Us'),
+                  _buildContactTile(
+                    icon: Icons.email_outlined,
+                    title: 'Email',
+                    subtitle: 'support@nisaclean.com',
+                    onTap: () {
+                      // TODO: Open email client
+                    },
+                  ),
+                  _buildContactTile(
+                    icon: Icons.phone_outlined,
+                    title: 'Phone',
+                    subtitle: '+254 700 000 000',
+                    onTap: () {
+                      // TODO: Open phone dialer
+                    },
+                  ),
+                  const Divider(),
+                  _buildSectionTitle('Feedback'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: TextField(
+                      controller: _feedbackController,
+                      decoration: const InputDecoration(
+                        labelText: 'Your Feedback',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: _submitFeedback,
+                    style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                    child: const Text('Submit Feedback'),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    );
+  }
+
+  Widget _buildModernAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 18),
+      child: Stack(
         children: [
-          _buildSectionTitle('Frequently Asked Questions'),
-          ..._faqs.map((faq) => _buildFaqTile(faq['question']!, faq['answer']!)).toList(),
-          const Divider(),
-          _buildSectionTitle('Contact Us'),
-          _buildContactTile(
-            icon: Icons.email_outlined,
-            title: 'Email',
-            subtitle: 'support@nisaclean.com',
-            onTap: () {
-              // TODO: Open email client
-            },
-          ),
-          _buildContactTile(
-            icon: Icons.phone_outlined,
-            title: 'Phone',
-            subtitle: '+254 700 000 000',
-            onTap: () {
-              // TODO: Open phone dialer
-            },
-          ),
-          const Divider(),
-          _buildSectionTitle('Feedback'),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: TextField(
-              controller: _feedbackController,
-              decoration: const InputDecoration(
-                labelText: 'Your Feedback',
-                border: OutlineInputBorder(),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                height: 90,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.primary.withOpacity(0.10),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
               ),
-              maxLines: 3,
             ),
           ),
-          ElevatedButton(
-            onPressed: _submitFeedback,
-            style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-            child: const Text('Submit Feedback'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(Icons.help_outline, color: Colors.white, size: 28),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: Text(
+                    'Help & Support',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

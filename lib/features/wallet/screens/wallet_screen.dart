@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:shimmer/shimmer.dart';
 import 'package:lottie/lottie.dart';
+import 'dart:ui';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -183,94 +184,140 @@ class _WalletScreenState extends State<WalletScreen>
     final colorScheme = Theme.of(context).colorScheme;
     final greeting = _userName != null ? _getGreeting() : 'Welcome!';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Material(
-        elevation: 6,
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [colorScheme.primary, colorScheme.primary.withOpacity(0.85)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.primary.withOpacity(0.18),
-                blurRadius: 18,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.white.withOpacity(0.2),
-                child: _userName != null
-                    ? Text(
-                        _userName!.substring(0, 1),
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                      )
-                    : const Icon(Icons.account_circle, color: Colors.white, size: 28),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      greeting,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _userName ?? 'User',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.5,
-                      ),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 18),
+      child: Stack(
+        children: [
+          // Glassmorphism background
+          ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                height: 110,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.primary.withOpacity(0.10),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
               ),
-              Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
-                    onPressed: () {},
+            ),
+          ),
+          // Decorative icon background
+          Positioned(
+            right: -10,
+            bottom: -10,
+            child: Icon(
+              Icons.account_balance_wallet,
+              size: 100,
+              color: colorScheme.primary.withOpacity(0.08),
+            ),
+          ),
+          // Main content
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Avatar with border and shadow
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.primary.withOpacity(0.18),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  if (_pendingCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
+                  child: CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    child: _userName != null
+                        ? Text(
+                            _userName!.substring(0, 1),
+                            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                          )
+                        : const Icon(Icons.account_circle, color: Colors.white, size: 28),
+                  ),
+                ),
+                const SizedBox(width: 18),
+                // Animated greeting and name
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AnimatedOpacity(
+                        opacity: 1.0,
+                        duration: const Duration(milliseconds: 700),
                         child: Text(
-                          _pendingCount.toString(),
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          greeting,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.92),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.2,
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 2),
+                      AnimatedOpacity(
+                        opacity: 1.0,
+                        duration: const Duration(milliseconds: 900),
+                        child: Text(
+                          _userName ?? 'User',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Notification bell with animated badge
+                Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
+                      onPressed: () {},
                     ),
-                ],
-              ),
-            ],
+                    if (_pendingCount > 0)
+                      AnimatedOpacity(
+                        opacity: _pendingCount > 0 ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 500),
+                        child: Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              _pendingCount.toString(),
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
