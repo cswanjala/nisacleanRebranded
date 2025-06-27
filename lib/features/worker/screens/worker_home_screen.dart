@@ -371,42 +371,26 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
-              expandedHeight: 180,
-              floating: false,
               pinned: true,
+              floating: false,
               backgroundColor: const Color(0xFF1A1A1A),
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-                title: BlocBuilder<AuthBloc, AuthState>(
-                  builder: (context, state) {
-                    final name = state.name ?? 'User';
-                    return Text(
-                      'Welcome, $name!',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        fontSize: 20,
-                      ),
-                    );
-                  },
-                ),
-                background: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF4A90E2), Color(0xFF3A7BD5)],
-                    ),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.cleaning_services,
-                      size: 80,
-                      color: Colors.white.withOpacity(0.2),
-                    ),
-                  ),
+              elevation: 2,
+              centerTitle: false,
+              title: Text(
+                'Worker Dashboard',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  fontSize: 20,
                 ),
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_none, color: Colors.white, size: 26),
+                  onPressed: () {},
+                ),
+                const SizedBox(width: 8),
+              ],
             ),
             SliverPersistentHeader(
               pinned: true,
