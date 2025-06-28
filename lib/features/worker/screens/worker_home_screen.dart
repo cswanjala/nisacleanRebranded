@@ -12,7 +12,6 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nisacleanv1/core/constants/api_constants.dart';
 import 'package:flutter/animation.dart';
-import 'package:nisacleanv1/services/auth_service.dart';
 
 // Reusable Modern App Bar Widget
 Widget buildModernAppBar({
@@ -529,42 +528,20 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
               SliverToBoxAdapter(
                 child: BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
-                    return FutureBuilder<Map<String, dynamic>>(
-                      future: AuthService().fetchCurrentProviderProfile(),
-                      builder: (context, snapshot) {
-                        String userName = 'Worker';
-                        String? avatarUrl;
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return buildModernAppBar(
-                            context: context,
-                            userName: 'Loading...',
-                            avatarUrl: null,
-                            unreadNotifications: _unreadNotifications,
-                            title: 'Worker Dashboard',
-                            onNotificationsPressed: () {},
-                          );
-                        }
-                        if (snapshot.hasError) {
-                          return buildModernAppBar(
-                            context: context,
-                            userName: state.name ?? 'Worker',
-                            avatarUrl: null,
-                            unreadNotifications: _unreadNotifications,
-                            title: 'Worker Dashboard',
-                            onNotificationsPressed: () {},
-                          );
-                        }
-                        final provider = snapshot.data ?? {};
-                        userName = provider['name'] ?? state.name ?? 'Worker';
-                        avatarUrl = provider['avatarUrl'] ?? null;
-                        return buildModernAppBar(
-                          context: context,
-                          userName: userName,
-                          avatarUrl: avatarUrl,
-                          unreadNotifications: _unreadNotifications,
-                          title: 'Worker Dashboard',
-                          onNotificationsPressed: () {},
-                        );
+                    String userName = 'Worker';
+                    String? avatarUrl;
+                    if (state.isAuthenticated == true) {
+                      userName = state.name ?? 'Worker';
+                      avatarUrl = null; // You can add avatarUrl if available in state
+                    }
+                    return buildModernAppBar(
+                      context: context,
+                      userName: userName,
+                      avatarUrl: avatarUrl,
+                      unreadNotifications: _unreadNotifications,
+                      title: 'Worker Dashboard',
+                      onNotificationsPressed: () {
+                        // TODO: Implement notifications
                       },
                     );
                   },

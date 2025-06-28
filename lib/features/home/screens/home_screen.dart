@@ -5,6 +5,7 @@ import 'package:nisacleanv1/features/auth/screens/login_screen.dart';
 import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
 import 'package:nisacleanv1/features/bookings/models/booking.dart';
 import 'package:nisacleanv1/features/bookings/screens/all_bookings_screen.dart';
+import 'package:nisacleanv1/features/notifications/screens/notifications_screen.dart'; // Import the notifications screen
 import 'dart:math';
 
 class HomeScreen extends StatefulWidget {
@@ -153,7 +154,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   IconButton(
                     icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
                     onPressed: () {
-                      // TODO: Implement notifications
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => NotificationsScreen(), // Navigate to NotificationsScreen
+                        ),
+                      );
                     },
                   ),
                   if (_unreadNotifications > 0)
@@ -443,4 +449,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-} 
+}
