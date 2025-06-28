@@ -12,6 +12,165 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nisacleanv1/core/constants/api_constants.dart';
 import 'package:flutter/animation.dart';
+import 'package:nisacleanv1/services/auth_service.dart';
+
+// Reusable Modern App Bar Widget
+Widget buildModernAppBar({
+  required BuildContext context,
+  required String userName,
+  String? avatarUrl,
+  int unreadNotifications = 0,
+  String? title,
+  List<Widget>? actions,
+  VoidCallback? onNotificationsPressed,
+  bool showBackButton = false,
+}) {
+  final colorScheme = Theme.of(context).colorScheme;
+  final greeting = _getGreeting();
+
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+    child: Material(
+      elevation: 6,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [colorScheme.primary, colorScheme.primary.withOpacity(0.85)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary.withOpacity(0.18),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (showBackButton)
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: Colors.white.withOpacity(0.2),
+              child: avatarUrl != null
+                  ? ClipOval(
+                      child: Image.network(
+                        avatarUrl,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Text(
+                          userName.substring(0, 1),
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    )
+                  : Text(
+                      userName.substring(0, 1),
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    greeting,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    userName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  if (title != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Row(
+              children: [
+                if (actions != null) ...actions,
+                Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
+                      onPressed: onNotificationsPressed,
+                    ),
+                    if (unreadNotifications > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            unreadNotifications.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+String _getGreeting() {
+  final hour = DateTime.now().hour;
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
 class WorkerHomeScreen extends StatefulWidget {
   const WorkerHomeScreen({super.key});
@@ -49,6 +208,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   bool _isMetricsLoading = true;
   String? _metricsError;
 
+  int get _unreadNotifications => _activities.where((activity) => activity['read'] == false).length;
+
   List<dynamic> get _pagedActivities {
     final start = _currentActivityPage * _activitiesPerPage;
     return _activities.skip(start).take(_activitiesPerPage).toList();
@@ -81,8 +242,6 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     });
     try {
       final jobs = await _bookingService.getProviderBookings();
-      print('Selected day: $day');
-      // jobs is List<Map<String, dynamic>>, convert to List<Booking> and filter
       final filteredJobs = jobs.map((json) => Booking.fromJson(json)).where((booking) {
         DateTime bookingDate;
         if (booking.date is DateTime) {
@@ -90,10 +249,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         } else {
           bookingDate = DateTime.parse(booking.date.toString()).toLocal();
         }
-        print('Booking: \\${booking.id}, date: \\${bookingDate.toIso8601String()}');
         return bookingDate.year == day.year &&
-               bookingDate.month == day.month &&
-               bookingDate.day == day.day;
+            bookingDate.month == day.month &&
+            bookingDate.day == day.day;
       }).toList();
       setState(() {
         _jobs = filteredJobs;
@@ -107,10 +265,6 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         _error = e.toString();
       });
     }
-  }
-
-  void _loadMoreJobs() {
-    // _scrollController.addListener(_loadMoreJobs);
   }
 
   Future<void> _fetchRecentActivities() async {
@@ -178,7 +332,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     }
   }
 
-   Future<void> _fetchTodayJobsCount() async {
+  Future<void> _fetchTodayJobsCount() async {
     setState(() {
       _isTodayJobsLoading = true;
       _todayJobsError = null;
@@ -186,7 +340,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-      
+
       if (token == null) {
         setState(() {
           _todayJobsError = 'Authentication token not found';
@@ -238,7 +392,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-      
+
       if (token == null) {
         setState(() {
           _completedJobsError = 'Authentication token not found';
@@ -354,6 +508,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     if (_selectedStatusFilter == null) return _jobs;
     return _jobs.where((b) => b.status.toString().split('.').last == _selectedStatusFilter).toList();
   }
+
   List<Booking> get _pagedBookings {
     final filtered = _filteredBookings;
     final start = _currentBookingPage * _bookingsPerPage;
@@ -364,97 +519,121 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
-      body: RefreshIndicator(
-        onRefresh: _refreshAllData,
-        color: Colors.white,
-        backgroundColor: const Color(0xFF2A2A2A),
-        child: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              pinned: true,
-              floating: false,
-              backgroundColor: const Color(0xFF1A1A1A),
-              elevation: 2,
-              centerTitle: false,
-              title: Text(
-                'Worker Dashboard',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  fontSize: 20,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _refreshAllData,
+          color: Colors.white,
+          backgroundColor: const Color(0xFF2A2A2A),
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, state) {
+                    return FutureBuilder<Map<String, dynamic>>(
+                      future: AuthService().fetchCurrentProviderProfile(),
+                      builder: (context, snapshot) {
+                        String userName = 'Worker';
+                        String? avatarUrl;
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return buildModernAppBar(
+                            context: context,
+                            userName: 'Loading...',
+                            avatarUrl: null,
+                            unreadNotifications: _unreadNotifications,
+                            title: 'Worker Dashboard',
+                            onNotificationsPressed: () {},
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return buildModernAppBar(
+                            context: context,
+                            userName: state.name ?? 'Worker',
+                            avatarUrl: null,
+                            unreadNotifications: _unreadNotifications,
+                            title: 'Worker Dashboard',
+                            onNotificationsPressed: () {},
+                          );
+                        }
+                        final provider = snapshot.data ?? {};
+                        userName = provider['name'] ?? state.name ?? 'Worker';
+                        avatarUrl = provider['avatarUrl'] ?? null;
+                        return buildModernAppBar(
+                          context: context,
+                          userName: userName,
+                          avatarUrl: avatarUrl,
+                          unreadNotifications: _unreadNotifications,
+                          title: 'Worker Dashboard',
+                          onNotificationsPressed: () {},
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_none, color: Colors.white, size: 26),
-                  onPressed: () {},
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _StickyHeaderDelegate(
+                  minHeight: 80,
+                  maxHeight: 100,
+                  child: Container(
+                    color: const Color(0xFF1A1A1A),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Schedule for ${_formatDate(_selectedDay ?? DateTime.now())}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                if (_selectedDay != null && !isSameDay(_selectedDay, DateTime.now()))
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedDay = DateTime.now();
+                                        _focusedDay = DateTime.now();
+                                      });
+                                      _fetchJobsForDay(_selectedDay!);
+                                    },
+                                    icon: const Icon(Icons.today, size: 18),
+                                    label: const Text('Today'),
+                                    style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 8),
-              ],
-            ),
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _StickyHeaderDelegate(
-                minHeight: 80,
-                maxHeight: 100,
-                child: Container(
-                  color: const Color(0xFF1A1A1A),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              SliverToBoxAdapter(child: _buildCalendar()),
+              _buildScheduleList(),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Schedule for ${_formatDate(_selectedDay ?? DateTime.now())}',
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              if (_selectedDay != null && !isSameDay(_selectedDay, DateTime.now()))
-                                TextButton.icon(
-                                  onPressed: () {
-                                    setState(() {
-                                      _selectedDay = DateTime.now();
-                                      _focusedDay = DateTime.now();
-                                    });
-                                    _fetchJobsForDay(_selectedDay!);
-                                  },
-                                  icon: const Icon(Icons.today, size: 18),
-                                  label: const Text('Today'),
-                                  style: TextButton.styleFrom(foregroundColor: Colors.white70),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
+                      const SizedBox(height: 16),
+                      _buildQuickStats(context),
+                      const SizedBox(height: 24),
+                      _buildRecentActivity(context),
                     ],
                   ),
                 ),
               ),
-            ),
-            SliverToBoxAdapter(child: _buildCalendar()),
-            _buildScheduleList(),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    _buildQuickStats(context),
-                    const SizedBox(height: 24),
-                    _buildRecentActivity(context),
-                  ],
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1206,402 +1385,4 @@ class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_StickyHeaderDelegate oldDelegate) => true;
-}
-
-class AllBookingsScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> schedules;
-
-  const AllBookingsScreen({super.key, required this.schedules});
-
-  @override
-  State<AllBookingsScreen> createState() => _AllBookingsScreenState();
-}
-
-class _AllBookingsScreenState extends State<AllBookingsScreen> {
-  String _searchQuery = '';
-  String _selectedStatus = 'all';
-  DateTime? _startDate;
-  DateTime? _endDate;
-  String _tempSearchQuery = '';
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1A1A1A),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A1A),
-        elevation: 0,
-        title: Text(
-          'All Bookings',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 20),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white70),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list, color: Colors.white70),
-            onPressed: _showFilterBottomSheet,
-          ),
-        ],
-      ),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Search bookings...',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.search, color: Colors.white70),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.white70),
-                          onPressed: () {
-                            setState(() {
-                              _searchQuery = '';
-                              _tempSearchQuery = '';
-                            });
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: const Color(0xFF2A2A2A),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                onChanged: (value) {
-                  _tempSearchQuery = value;
-                  Future.delayed(const Duration(milliseconds: 500), () {
-                    if (_tempSearchQuery == value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    }
-                  });
-                },
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 8,
-                children: [
-                  if (_startDate != null || _endDate != null)
-                    Chip(
-                      label: Text(
-                        'Date: ${_startDate != null ? _formatDate(_startDate!) : 'Any'} - ${_endDate != null ? _formatDate(_endDate!) : 'Any'}',
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                      backgroundColor: Colors.white.withOpacity(0.1),
-                      deleteIcon: const Icon(Icons.close, size: 16, color: Colors.white70),
-                      onDeleted: () {
-                        setState(() {
-                          _startDate = null;
-                          _endDate = null;
-                        });
-                      },
-                    ),
-                  if (_selectedStatus != 'all')
-                    Chip(
-                      label: Text(
-                        'Status: ${_selectedStatus.toUpperCase()}',
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                      backgroundColor: Colors.white.withOpacity(0.1),
-                      deleteIcon: const Icon(Icons.close, size: 16, color: Colors.white70),
-                      onDeleted: () {
-                        setState(() {
-                          _selectedStatus = 'all';
-                        });
-                      },
-                    ),
-                ],
-              ),
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final schedule = _filteredSchedules[index];
-                return AnimatedOpacity(
-                  opacity: 1.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    elevation: 2,
-                    color: const Color(0xFF2A2A2A),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(12),
-                      leading: CircleAvatar(
-                        backgroundColor: _getStatusColor(schedule['status'] as String).withOpacity(0.2),
-                        child: Icon(
-                          Icons.cleaning_services,
-                          color: _getStatusColor(schedule['status'] as String),
-                          size: 24,
-                        ),
-                      ),
-                      title: Text(
-                        schedule['title'] as String,
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 6),
-                          Text(
-                            schedule['client'] as String,
-                            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Icons.calendar_today, size: 14, color: Colors.white70),
-                              const SizedBox(width: 4),
-                              Text(
-                                _formatDate(schedule['date'] as DateTime),
-                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Icons.access_time, size: 14, color: Colors.white70),
-                              const SizedBox(width: 4),
-                              Text(
-                                schedule['time'] as String,
-                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Icons.location_on, size: 14, color: Colors.white70),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  schedule['address'] as String,
-                                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(schedule['status'] as String).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          (schedule['status'] as String).toUpperCase(),
-                          style: GoogleFonts.poppins(
-                            color: _getStatusColor(schedule['status'] as String),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      onTap: () {
-                        // Navigate to booking details (unchanged)
-                      },
-                    ),
-                  ),
-                );
-              },
-              childCount: _filteredSchedules.length,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF2A2A2A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Filter Bookings',
-              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              children: [
-                ChoiceChip(
-                  label: const Text('All'),
-                  selected: _selectedStatus == 'all',
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedStatus = 'all';
-                    });
-                    Navigator.pop(context);
-                  },
-                  selectedColor: Colors.white.withOpacity(0.2),
-                  backgroundColor: const Color(0xFF3A3A3A),
-                  labelStyle: TextStyle(color: _selectedStatus == 'all' ? Colors.white : Colors.white70),
-                ),
-                ...['upcoming', 'in_progress', 'completed', 'cancelled'].map((status) => ChoiceChip(
-                      label: Text(status.toUpperCase()),
-                      selected: _selectedStatus == status,
-                      onSelected: (selected) {
-                        setState(() {
-                          _selectedStatus = status;
-                        });
-                        Navigator.pop(context);
-                      },
-                      selectedColor: Colors.white.withOpacity(0.2),
-                      backgroundColor: const Color(0xFF3A3A3A),
-                      labelStyle: TextStyle(color: _selectedStatus == status ? Colors.white : Colors.white70),
-                    )),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: _startDate ?? DateTime.now(),
-                        firstDate: DateTime(2024),
-                        lastDate: DateTime(2025),
-                      );
-                      if (date != null) {
-                        setState(() {
-                          _startDate = date;
-                        });
-                      }
-                    },
-                    icon: const Icon(Icons.calendar_today, color: Colors.white70),
-                    label: Text(
-                      _startDate == null ? 'Start Date' : _formatDate(_startDate!),
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: _endDate ?? DateTime.now(),
-                        firstDate: DateTime(2024),
-                        lastDate: DateTime(2025),
-                      );
-                      if (date != null) {
-                        setState(() {
-                          _endDate = date;
-                        });
-                      }
-                    },
-                    icon: const Icon(Icons.calendar_today, color: Colors.white70),
-                    label: Text(
-                      _endDate == null ? 'End Date' : _formatDate(_endDate!),
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _selectedStatus = 'all';
-                        _startDate = null;
-                        _endDate = null;
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Clear All', style: TextStyle(color: Colors.white70)),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90E2),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Apply'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day + 1);
-    final yesterday = DateTime(now.year, now.month, now.day - 1);
-
-    if (isSameDay(date, now)) {
-      return 'Today';
-    } else if (isSameDay(date, tomorrow)) {
-      return 'Tomorrow';
-    } else if (isSameDay(date, yesterday)) {
-      return 'Yesterday';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'upcoming':
-        return Colors.blue;
-      case 'in_progress':
-        return Colors.orange;
-      case 'completed':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  List<Map<String, dynamic>> get _filteredSchedules {
-    return widget.schedules.where((schedule) {
-      final matchesSearch = schedule['title'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          schedule['client'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesStatus = _selectedStatus == 'all' || schedule['status'] == _selectedStatus;
-      final date = schedule['date'] as DateTime;
-      final matchesDateRange = (_startDate == null || date.isAfter(_startDate!)) &&
-          (_endDate == null || date.isBefore(_endDate!));
-      return matchesSearch && matchesStatus && matchesDateRange;
-    }).toList();
-  }
 }

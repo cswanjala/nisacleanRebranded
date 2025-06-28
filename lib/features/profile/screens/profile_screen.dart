@@ -85,6 +85,7 @@ class ProfileScreen extends StatelessWidget {
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
                         ),
                         const SizedBox(height: 24),
+                        if (isProvider) // Only show for providers
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
