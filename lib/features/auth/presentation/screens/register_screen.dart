@@ -57,15 +57,23 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) async {
-        if (state.isAuthenticated) {
-          if (_selectedUserType == UserType.serviceProvider) {
+        // If registration just succeeded, auto-login
+        if (!state.isLoading && state.error == null && state.userId != null && !state.isAuthenticated) {
+          context.read<AuthBloc>().add(
+            LoginRequested(
+              email: _emailController.text,
+              password: _passwordController.text,
+              userType: _selectedUserType,
+            ),
+          );
+        } else if (state.isAuthenticated) {
+          if (state.userType == UserType.serviceProvider) {
             await _showProviderDetailsDialog(context, state.userId!);
-            Navigator.pushReplacementNamed(context, '/home');
+            Navigator.pushReplacementNamed(context, '/worker-home');
           } else {
             Navigator.pushReplacementNamed(context, '/home');
           }
-        }
-        if (!state.isLoading && state.error == null && !state.isAuthenticated) {
+        } else if (!state.isLoading && state.error == null && !state.isAuthenticated && state.userId == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Registration successful! Please login.'),
@@ -490,7 +498,7 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                         GestureDetector(
                           onTap: () async {
                             final picked = await picker.pickMultiImage();
-                            if (picked != null && picked.isNotEmpty) {
+                            if (picked.isNotEmpty) {
                               setState(() {
                                 _pickedFiles.addAll(picked.take(5 - _pickedFiles.length));
                               });
@@ -562,4 +570,4 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
       },
     );
   }
-} 
+}

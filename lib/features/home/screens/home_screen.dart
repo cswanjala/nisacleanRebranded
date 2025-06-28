@@ -6,6 +6,9 @@ import 'package:nisacleanv1/features/bookings/services/booking_service.dart';
 import 'package:nisacleanv1/features/bookings/models/booking.dart';
 import 'package:nisacleanv1/features/bookings/screens/all_bookings_screen.dart';
 import 'package:nisacleanv1/features/notifications/screens/notifications_screen.dart'; // Import the notifications screen
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nisacleanv1/core/bloc/auth/auth_bloc.dart';
+import 'package:nisacleanv1/core/bloc/auth/auth_state.dart';
 import 'dart:math';
 
 class HomeScreen extends StatefulWidget {
@@ -21,9 +24,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   int _recentBookingsPage = 0; // Track which set of 3 is being shown
 
-  // Mock user data for header
-  final String _userName = 'Christine';
-  final String? _avatarUrl = null; // Replace with real URL if available
+  // Remove hardcoded user data
+  // final String _userName = 'Christine';
+  // final String? _avatarUrl = null; // Replace with real URL if available
   final int _unreadNotifications = 2;
 
   @override
@@ -85,105 +88,111 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildModernAppBar(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final greeting = _getGreeting();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Material(
-        elevation: 6,
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [colorScheme.primary, colorScheme.primary.withOpacity(0.85)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        final String userName = state.name ?? 'User';
+        final String? avatarUrl = null; // Add avatarUrl if available in state
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Material(
+            elevation: 6,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.primary.withOpacity(0.18),
-                blurRadius: 18,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.white.withOpacity(0.2),
-                child: _avatarUrl != null
-                    ? ClipOval(
-                        child: Image.network(_avatarUrl!, width: 56, height: 56, fit: BoxFit.cover),
-                      )
-                    : Text(
-                        _userName.substring(0, 1),
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      greeting,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _userName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [colorScheme.primary, colorScheme.primary.withOpacity(0.85)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ),
-              Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => NotificationsScreen(), // Navigate to NotificationsScreen
-                        ),
-                      );
-                    },
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.primary.withOpacity(0.18),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
                   ),
-                  if (_unreadNotifications > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          _unreadNotifications.toString(),
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
                 ],
               ),
-            ],
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    child: avatarUrl != null
+                        ? ClipOval(
+                            child: Image.network(avatarUrl, width: 56, height: 56, fit: BoxFit.cover),
+                          )
+                        : Text(
+                            userName.isNotEmpty ? userName.substring(0, 1) : 'U',
+                            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                  ),
+                  const SizedBox(width: 18),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          greeting,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          userName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Stack(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => NotificationsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      if (_unreadNotifications > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              _unreadNotifications.toString(),
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

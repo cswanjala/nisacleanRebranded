@@ -68,7 +68,7 @@ Widget buildModernAppBar({
                         height: 56,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Text(
-                          userName.substring(0, 1),
+                          userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
                           style: const TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -78,7 +78,7 @@ Widget buildModernAppBar({
                       ),
                     )
                   : Text(
-                      userName.substring(0, 1),
+                      userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -94,33 +94,43 @@ Widget buildModernAppBar({
                   Text(
                     greeting,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
                       letterSpacing: 0.2,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    userName,
+                    userName.isNotEmpty
+                        ? userName[0].toUpperCase() + userName.substring(1)
+                        : '',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 22,
+                      fontSize: 26,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.5,
                     ),
                   ),
-                  if (title != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      title,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 2,
+                    width: 36,
+                    decoration: BoxDecoration(
+                      color: colorScheme.secondary.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Active Worker',
+                    style: TextStyle(
+                      color: colorScheme.secondary.withOpacity(0.8),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -528,18 +538,13 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
               SliverToBoxAdapter(
                 child: BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
-                    String userName = 'Worker';
+                    String userName = state.name ?? 'Loading...';
                     String? avatarUrl;
-                    if (state.isAuthenticated == true) {
-                      userName = state.name ?? 'Worker';
-                      avatarUrl = null; // You can add avatarUrl if available in state
-                    }
                     return buildModernAppBar(
                       context: context,
                       userName: userName,
                       avatarUrl: avatarUrl,
                       unreadNotifications: _unreadNotifications,
-                      title: 'Worker Dashboard',
                       onNotificationsPressed: () {
                         // TODO: Implement notifications
                       },
