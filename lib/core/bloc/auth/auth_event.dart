@@ -50,11 +50,12 @@ class UpdateProfileRequested extends AuthEvent {
   final String? name;
   final String? email;
   final String? phone;
+  final String? imagePath;
 
-  const UpdateProfileRequested({this.name, this.email, this.phone});
+  const UpdateProfileRequested({this.name, this.email, this.phone, this.imagePath});
 
   @override
-  List<Object?> get props => [name, email, phone];
+  List<Object?> get props => [name, email, phone, imagePath];
 }
 
-class FetchProfileRequested extends AuthEvent {} 
+class FetchProfileRequested extends AuthEvent {}

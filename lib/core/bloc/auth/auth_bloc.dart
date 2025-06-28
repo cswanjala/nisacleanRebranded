@@ -41,6 +41,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: profile['email'] ?? event.email,
         phone: profile['phone'] ?? '',
         token: result['token'],
+        photoUrl: profile['photo'] ?? profile['profilePic'] ?? '',
         ));
     } catch (e) {
         emit(state.copyWith(
@@ -138,6 +139,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           email: profile['email'] ?? '',
           phone: profile['phone'] ?? '',
           token: token,
+          photoUrl: profile['photo'] ?? profile['profilePic'] ?? '',
         ));
       } else {
         emit(const AuthState());
@@ -157,6 +159,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: event.name,
         email: event.email,
         phone: event.phone,
+        imagePath: event.imagePath,
       );
       // Fetch updated profile
       final profile = await _authService.fetchUserProfile();
@@ -165,6 +168,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: profile['name'] ?? state.name,
         email: profile['email'] ?? state.email,
         phone: profile['phone'] ?? state.phone,
+        photoUrl: profile['photo'] ?? profile['profilePic'] ?? state.photoUrl,
       ));
     } catch (e) {
       emit(state.copyWith(
@@ -186,6 +190,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: profile['name'] ?? state.name,
         email: profile['email'] ?? state.email,
         phone: profile['phone'] ?? state.phone,
+        photoUrl: profile['photo'] ?? profile['profilePic'] ?? state.photoUrl,
       ));
     } catch (e) {
       emit(state.copyWith(
@@ -194,4 +199,4 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ));
     }
   }
-} 
+}

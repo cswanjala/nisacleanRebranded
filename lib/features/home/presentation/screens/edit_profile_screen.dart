@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/bloc/auth/auth_bloc.dart';
 import '../../../../core/bloc/auth/auth_event.dart';
 import '../../../../core/bloc/auth/auth_state.dart';
@@ -27,6 +29,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   String? _photoUrl;
+  File? _selectedImageFile;
 
   @override
   void initState() {
@@ -45,22 +48,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  void _pickPhoto() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImageFile = File(pickedFile.path);
+        _photoUrl = null; // Clear network image if new image picked
+      });
+    }
+  }
+
   void _saveProfile() {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final phone = _phoneController.text.trim();
     final bloc = context.read<AuthBloc>();
-    bloc.add(UpdateProfileRequested(name: name, email: email, phone: phone));
-  }
-
-  void _pickPhoto() async {
-    // In a real app, use image picker
-    setState(() {
-      _photoUrl = null; // Simulate photo change
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Photo picker not implemented in mockup.')),
-    );
+    bloc.add(UpdateProfileRequested(
+      name: name,
+      email: email,
+      phone: phone,
+      imagePath: _selectedImageFile?.path,
+    ));
   }
 
   @override
@@ -106,8 +115,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: CircleAvatar(
                             radius: 48,
                             backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                            backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
-                            child: _photoUrl == null
+                            backgroundImage: _selectedImageFile != null
+                                ? FileImage(_selectedImageFile!)
+                                : (_photoUrl != null ? NetworkImage(_photoUrl!) : null) as ImageProvider<Object>?,
+                            child: _selectedImageFile == null && _photoUrl == null
                                 ? Icon(Icons.person, size: 48, color: Theme.of(context).colorScheme.primary)
                                 : null,
                           ),

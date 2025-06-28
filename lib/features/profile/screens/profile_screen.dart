@@ -39,40 +39,46 @@ class ProfileScreen extends StatelessWidget {
               final providerEmail = provider['email'] ?? email;
               final providerPhone = provider['phone'] ?? phone;
               final bool isAvailable = provider['isAvailable'] == true || false;
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 110,
-                      height: 110,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [blue.withOpacity(0.5), Colors.transparent],
-                          radius: 0.6,
-                          center: Alignment.center,
+              final photoUrl = provider['photo'] ?? provider['profilePic'] ?? null;
+              return Scaffold(
+                backgroundColor: Theme.of(context).colorScheme.background,
+                body: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 40),
+                        Center(
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Container(
+                                width: 110,
+                                height: 110,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: RadialGradient(
+                                    colors: [blue.withOpacity(0.5), Colors.transparent],
+                                    radius: 0.6,
+                                    center: Alignment.center,
+                                  ),
+                                ),
+                              ),
+                              CircleAvatar(
+                                radius: 45,
+                                backgroundColor: const Color(0xFF1E88E5),
+                                backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                                    ? NetworkImage(photoUrl)
+                                    : null,
+                                child: (photoUrl == null || photoUrl.isEmpty)
+                                    ? const Icon(Icons.person, size: 48, color: Colors.white)
+                                    : null,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
-                    const CircleAvatar(
-                      radius: 45,
-                                child: Icon(Icons.person, size: 48, color: Colors.white),
-                                backgroundColor: Color(0xFF1E88E5),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
+                        const SizedBox(height: 16),
+                        Text(
                           providerName,
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Colors.white,
@@ -136,10 +142,8 @@ class ProfileScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-              );
-            },
-          );
+                );
+              }
         }
         // For clients, do NOT show the availability toggle
         return Scaffold(
@@ -166,10 +170,15 @@ class ProfileScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 45,
-                          child: Icon(Icons.person, size: 48, color: Colors.white),
-                          backgroundColor: Color(0xFF1E88E5),
+                          backgroundColor: const Color(0xFF1E88E5),
+                          backgroundImage: (state.photoUrl != null && state.photoUrl!.isNotEmpty)
+                              ? NetworkImage(state.photoUrl!)
+                              : null,
+                          child: (state.photoUrl == null || state.photoUrl!.isEmpty)
+                              ? const Icon(Icons.person, size: 48, color: Colors.white)
+                              : null,
                         ),
                       ],
                     ),
