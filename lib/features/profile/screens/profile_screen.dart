@@ -84,29 +84,32 @@ class ProfileScreen extends StatelessWidget {
                           providerEmail,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
                         ),
-                        const SizedBox(height: 24),
-                        if (isProvider) // Only show for providers
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white10,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
-                          ),
-                          child: Column(
-                            children: [
-                              Text(
-                                'Availability',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                        // Only show availability toggle if user is a provider
+                        if (isProvider)
+                          ...[
+                            const SizedBox(height: 24),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white10,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
                               ),
-                              const SizedBox(height: 12),
-                              _ProviderAvailabilityToggle(isAvailable: isAvailable),
-                            ],
-                          ),
-                        ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Availability',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _ProviderAvailabilityToggle(isAvailable: isAvailable),
+                                ],
+                              ),
+                            ),
+                          ],
                         const SizedBox(height: 24),
                         _buildInfoSection(context, 'Provider Information', blue, [
                           _InfoItem(icon: Icons.email, label: providerEmail),
@@ -138,6 +141,7 @@ class ProfileScreen extends StatelessWidget {
             },
           );
         }
+        // For clients, do NOT show the availability toggle
         return Scaffold(
           backgroundColor: Theme.of(context).colorScheme.background,
           body: SingleChildScrollView(
@@ -184,54 +188,33 @@ class ProfileScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
               ),
                   const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white10,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Availability',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _ProviderAvailabilityToggle(isAvailable: false),
-                      ],
-                    ),
-                  ),
-              const SizedBox(height: 24),
-              _buildInfoSection(context, 'Personal Information', blue, [
+                  // No availability toggle for clients
+                  _buildInfoSection(context, 'Personal Information', blue, [
                     _InfoItem(icon: Icons.email, label: email),
                     _InfoItem(icon: Icons.phone, label: phone),
                   ], name: name, phone: phone),
-              const SizedBox(height: 24),
-              _buildInfoSection(context, 'Utilities', blue, [
-                _NavItem(icon: Icons.settings, label: 'Settings', onTap: () {}),
-                _NavItem(icon: Icons.language, label: 'Language', onTap: () {}),
-                _NavItem(
-                  icon: Icons.help_outline,
-                  label: 'Ask Help-Desk',
-                  onTap: () {},
-                ),
-                _NavItem(
-                  icon: Icons.logout,
-                  label: 'Log-Out',
+                  const SizedBox(height: 24),
+                  _buildInfoSection(context, 'Utilities', blue, [
+                    _NavItem(icon: Icons.settings, label: 'Settings', onTap: () {}),
+                    _NavItem(icon: Icons.language, label: 'Language', onTap: () {}),
+                    _NavItem(
+                      icon: Icons.help_outline,
+                      label: 'Ask Help-Desk',
+                      onTap: () {},
+                    ),
+                    _NavItem(
+                      icon: Icons.logout,
+                      label: 'Log-Out',
                       onTap: () {
                         context.read<AuthBloc>().add(LogoutRequested());
                         Navigator.pushReplacementNamed(context, '/login');
                       },
-                ),
-              ]),
-            ],
+                    ),
+                  ]),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
         );
       },
     );
