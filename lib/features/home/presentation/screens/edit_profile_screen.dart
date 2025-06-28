@@ -88,64 +88,78 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
           ),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              GestureDetector(
-                onTap: _pickPhoto,
-                child: CircleAvatar(
-                  radius: 48,
-                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
-                  child: _photoUrl == null
-                      ? Icon(Icons.person, size: 48, color: Theme.of(context).colorScheme.primary)
-                      : null,
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: _pickPhoto,
+                          child: CircleAvatar(
+                            radius: 48,
+                            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                            backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
+                            child: _photoUrl == null
+                                ? Icon(Icons.person, size: 48, color: Theme.of(context).colorScheme.primary)
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Name',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _phoneController,
+                          decoration: const InputDecoration(
+                            labelText: 'Phone',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.phone,
+                        ),
+                        const SizedBox(height: 32),
+                        BlocBuilder<AuthBloc, AuthState>(
+                          builder: (context, state) {
+                            return ElevatedButton(
+                              onPressed: state.isLoading ? null : _saveProfile,
+                              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                              child: state.isLoading
+                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  : const Text('Save Changes'),
+                            );
+                          },
+                        ),
+                        const Spacer(),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 32),
-              BlocBuilder<AuthBloc, AuthState>(
-                builder: (context, state) {
-                  return ElevatedButton(
-                    onPressed: state.isLoading ? null : _saveProfile,
-                    style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                    child: state.isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Save Changes'),
-                  );
-                },
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
-} 
+}

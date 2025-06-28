@@ -311,22 +311,23 @@ class AuthService {
     String? name,
     String? email,
     String? phone,
+    String? imagePath, // Local file path to the image
   }) async {
     try {
       final token = await getToken();
       if (token == null) throw 'Not authenticated';
-      final body = <String, dynamic>{};
-      if (name != null) body['name'] = name;
-      if (email != null) body['email'] = email;
-      if (phone != null) body['phone'] = phone;
-      final response = await http.put(
-        Uri.parse('$baseUrl/users/updateMe'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
-      );
+      final url = Uri.parse('$baseUrl/users/update-me');
+      var request = http.MultipartRequest('POST', url);
+      request.headers['Authorization'] = 'Bearer $token';
+      // Only add fields if provided
+      if (name != null) request.fields['name'] = name;
+      if (email != null) request.fields['email'] = email;
+      if (phone != null) request.fields['phone'] = phone;
+      if (imagePath != null && imagePath.isNotEmpty) {
+        request.files.add(await http.MultipartFile.fromPath('photo', imagePath));
+      }
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['data'] != null) {
         return data['data'];
@@ -386,4 +387,4 @@ class AuthService {
       throw data['message'] ?? 'Failed to toggle availability';
     }
   }
-} 
+}
